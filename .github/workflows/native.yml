@@ -1,6 +1,6 @@
 # Native apps — Android (APK/AAB), iOS (simulator build + unsigned device archive) and Desktop (Windows, macOS, Linux).
 # Every run: builds, runs tests, installs and launches the mobile apps in an emulator/simulator and keeps screenshots.
-# Tags v*: also publishes a GitHub Release with all installers and SHA256SUMS.txt.
+# Pushes to main and tags v*: publish/refresh the GitHub Release v<package.json version> with all installers + SHA256SUMS.txt.
 # Optional signing secrets (builds stay unsigned without them):
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 name: Native apps
@@ -8,6 +8,8 @@ name: Native apps
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['android/**', 'ios/**', 'desktop/**', 'src/**', 'public/**', 'capacitor.config.ts', 'package.json', 'package-lock.json', '.github/workflows/native.yml']
   workflow_dispatch:
 
 permissions:
@@ -27,6 +29,7 @@ jobs:
         with: { node-version: 22, cache: npm }
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21', cache: gradle }
+      - run: echo "APP_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npm run build
       - run: npx cap sync android
@@ -48,9 +51,9 @@ jobs:
       - name: Collect
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/debug/app-debug.apk out/ATLIP-${GITHUB_REF_NAME//\//-}-android-debug.apk
-          for f in android/app/build/outputs/apk/release/*.apk; do cp "$f" "out/ATLIP-${GITHUB_REF_NAME//\//-}-android-release$( [ "$SIGNED" = 1 ] || echo -unsigned ).apk"; done
-          cp android/app/build/outputs/bundle/release/app-release.aab "out/ATLIP-${GITHUB_REF_NAME//\//-}-android-release$( [ "$SIGNED" = 1 ] || echo -unsigned ).aab"
+          cp android/app/build/outputs/apk/debug/app-debug.apk out/ATLIP-v${APP_VERSION}-android-debug.apk
+          for f in android/app/build/outputs/apk/release/*.apk; do cp "$f" "out/ATLIP-v${APP_VERSION}-android-release$( [ "$SIGNED" = 1 ] || echo -unsigned ).apk"; done
+          cp android/app/build/outputs/bundle/release/app-release.aab "out/ATLIP-v${APP_VERSION}-android-release$( [ "$SIGNED" = 1 ] || echo -unsigned ).aab"
           rm -f android/release.jks android/keystore.properties
           ls -la out
       - name: Enable KVM
@@ -84,6 +87,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
+      - run: echo "APP_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npm run build
       - run: npx cap sync ios
@@ -110,7 +114,7 @@ jobs:
           xcrun simctl io "$UDID" screenshot out/ios-simulator-screenshot.png
           xcrun simctl spawn "$UDID" launchctl list | grep -i "gh.infinitytechub.atlip" | tee out/ios-running.txt
           test -s out/ios-running.txt
-          N=ATLIP-${GITHUB_REF_NAME//\//-}
+          N=ATLIP-v${APP_VERSION}
           (cd "$(dirname "$APP")" && zip -qry "$GITHUB_WORKSPACE/out/$N-ios-simulator.zip" App.app)
           (cd build && zip -qry "$GITHUB_WORKSPACE/out/$N-ios-unsigned.xcarchive.zip" ATLIP.xcarchive)
           ls -la out
@@ -150,6 +154,9 @@ jobs:
     needs: [android, ios, desktop]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: package.json, sparse-checkout-cone-mode: false }
+      - run: echo "APP_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
         with: { path: artifacts }
       - name: Checksums & build report
@@ -159,12 +166,16 @@ jobs:
           cp artifacts/android/android-emulator-screenshot.png dist/ 2>/dev/null || true
           cp artifacts/ios/ios-simulator-screenshot.png dist/ 2>/dev/null || true
           (cd dist && sha256sum * > SHA256SUMS.txt)
-          { echo "## ATLIP native builds — ${GITHUB_REF_NAME}"; echo; echo '| File | Size | SHA-256 |'; echo '|---|---|---|'
+          { echo "## ATLIP native builds — v${APP_VERSION} (${GITHUB_SHA::7})"; echo; echo '| File | Size | SHA-256 |'; echo '|---|---|---|'
             cd dist; for f in *; do [ "$f" = SHA256SUMS.txt ] && continue; echo "| $f | $(du -h "$f" | cut -f1) | \`$(sha256sum "$f" | cut -c1-16)…\` |"; done; } >> "$GITHUB_STEP_SUMMARY"
-      - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish GitHub Release v${{ env.APP_VERSION }}
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "Eagle Eye 360 ATLIP $GITHUB_REF_NAME" \
-            --notes "Android, iOS and desktop apps for Eagle Eye 360 · ATLIP. Verify downloads against SHA256SUMS.txt. Unsigned builds: see docs/NATIVE_APPS.md for signing and store submission." \
-            || gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          TAG="v${APP_VERSION}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Eagle Eye 360 ATLIP $TAG" \
+              --notes "Android, iOS and desktop apps for Eagle Eye 360 · ATLIP. Verify downloads against SHA256SUMS.txt. Builds are unsigned until signing secrets are added — see docs/NATIVE_APPS.md for signing and store submission."
+          fi
