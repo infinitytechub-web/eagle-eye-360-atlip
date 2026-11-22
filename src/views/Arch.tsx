@@ -1,26 +1,26 @@
 const LAYERS: [string, string, boolean, string][] = [
   ['MULTI-PLATFORM CLIENTS', 'Web PWA (live) · iOS · Android · Windows · macOS', false, 'Web live'],
   ['SECURE API GATEWAY', 'Supabase Auth · JWT · RLS · Realtime WebSockets · Edge Functions', false, 'Live'],
-  ['AI ENGINE', 'YOLO · OpenCV · PyTorch', true, 'Not yet built'],
+  ['AI ENGINE', 'YOLO11 detector + ATLIP state CNN · ONNX Runtime (on-device)', true, 'Live'],
   ['VIDEO ENGINE', 'RTSP · GStreamer · WebRTC', false, 'Not yet built'],
   ['INTELLIGENCE', 'GPS · Analytics · Alerts', false, 'Live'],
   ['SECURITY', 'Audit · Monitoring · Evidence', false, 'Live'],
   ['DATA INFRASTRUCTURE', 'PostgreSQL · Supabase · Secure Object Storage', false, 'Live'],
 ];
 const PRI: [string, string, string, string][] = [
-  ['1', 'Working AI traffic-light detection prototype', 'a', 'In progress — verification pipeline and labelled heuristic run; a trained YOLO model validated on a real Ghana signal dataset is the gating step.'],
+  ['1', 'Working AI traffic-light detection', 'g', 'Live — trained two-stage pipeline on-device; measured on held-out and unseen real driving data. Next: fine-tune and validate on Ghanaian footage.'],
   ['2', 'Mobile camera and live detection', 'g', 'Live — getUserMedia on-device heuristic; verified state changes are stored server-side.'],
   ['3', 'CCTV integration and monitoring', 'a', 'Partial — registration, status, audit and masked references live; video gateway and real streams not connected.'],
   ['4', 'Intelligence dashboard and GPS', 'g', 'Live — dashboard, analytics, reports and map run on database data with realtime updates.'],
   ['5', 'Cybersecurity and administration', 'g', 'Live — Supabase Auth, MFA, RLS, approvals, audit, admin edge function.'],
   ['6', 'iOS, Android and desktop packaging', 'grey', 'Not built — installable PWA today; Capacitor and Tauri are the planned paths.'],
-  ['7', 'Performance, security and field testing', 'grey', 'Not yet run — awaits the trained model; Supabase advisor checks pass.'],
+  ['7', 'Performance, security and field testing', 'a', 'Partial — model benchmarks and RLS tests done; Ghana field trials and load tests not yet run.'],
 ];
 
 export default function Arch() {
   return (
     <>
-      <div className="notice"><strong>Strongest recommendation:</strong> build and validate the AI detection engine next, then integrate it into the web and mobile interfaces. The platform around it — authentication, data, realtime, audit — is now live, so the detection engine is the critical path.</div>
+      <div className="notice"><strong>Current recommendation:</strong> the AI detection engine is now live on-device. The critical path is collecting and labelling Ghanaian intersection footage to fine-tune and field-validate it (see ml/README.md), then the CCTV video gateway.</div>
       <div className="card" style={{ marginTop: '1rem' }}><h3>System architecture — separation of application services</h3>
         <p className="small muted">Clients never talk to cameras or the database directly — everything passes through the authenticated API layer, and video will pass through the protected video gateway.</p>
         <div className="archflow">

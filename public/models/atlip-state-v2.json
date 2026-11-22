@@ -1,0 +1,66 @@
+{
+ "model": "atlip-state-v2",
+ "classes": [
+  "RED",
+  "CAUTION",
+  "GREEN",
+  "UNKNOWN"
+ ],
+ "input": {
+  "width": 32,
+  "height": 64,
+  "layout": "NCHW",
+  "range": "0-1 RGB"
+ },
+ "params": 61204,
+ "test_report": {
+  "RED": {
+   "precision": 0.9783,
+   "recall": 0.9945,
+   "support": 181
+  },
+  "CAUTION": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "support": 9
+  },
+  "GREEN": {
+   "precision": 0.9714,
+   "recall": 0.9533,
+   "support": 107
+  },
+  "UNKNOWN": {
+   "precision": 0.9597,
+   "recall": 0.9533,
+   "support": 150
+  },
+  "accuracy": 0.9709
+ },
+ "test_confusion": [
+  [
+   180,
+   0,
+   0,
+   1
+  ],
+  [
+   0,
+   9,
+   0,
+   0
+  ],
+  [
+   0,
+   0,
+   102,
+   5
+  ],
+  [
+   4,
+   0,
+   3,
+   143
+  ]
+ ],
+ "data": "Udacity/MIT traffic-light crops (MIT licence) + synthetic UNKNOWN (unlit, glare, blur, background)"
+}

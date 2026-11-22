@@ -11,14 +11,15 @@ const PLATFORMS: [string, string, string, string][] = [
   ['iOS', 'Capacitor + Core ML', 'grey', 'Not built'],
   ['Android', 'Capacitor + LiteRT / ONNX Runtime Mobile', 'grey', 'Not built'],
   ['Desktop', 'Tauri / Electron packaging', 'grey', 'Not built'],
-  ['AI inference & video gateway', 'Python / YOLO service · RTSP → WebRTC/HLS', 'grey', 'Not built'],
+  ['AI detection model', 'YOLO11 + ATLIP state classifier, on-device (ONNX Runtime Web)', 'g', 'Live'],
+  ['Video gateway (CCTV)', 'RTSP → WebRTC/HLS server-side service', 'grey', 'Not built'],
 ];
 const ACCEPT: [string, string, 'ok' | 'part' | 'no'][] = [
-  ['1. Red/amber/green detection', 'MET for demo scenes + on-device heuristic; trained model NOT MET', 'part'],
-  ['2. Directional signal recognition', 'NOT MET in production (demo scenes only)', 'no'],
+  ['1. Red/amber/green detection', 'MET — trained models live; 97.1% state accuracy in-domain; Ghana validation pending', 'part'],
+  ['2. Directional signal recognition', 'PARTIAL — arrows classified by colour; direction not yet recognised', 'part'],
   ['3. Mobile camera integration', 'MET — live camera, results stored server-side', 'ok'],
   ['4. Authorised CCTV integration', 'PARTIAL — registration & audit live; no video gateway/streams', 'part'],
-  ['5. Real-time AI inference (trained model)', 'NOT MET — no YOLO model deployed', 'no'],
+  ['5. Real-time AI inference (trained model)', 'MET — YOLO11n + state CNN on-device, ~3 fps in browser; Ghana fine-tuning pending', 'part'],
   ['6. GPS & intersection mapping', 'MET — map, manual assignment, device GPS comparison', 'ok'],
   ['7. Analytics dashboard', 'MET — database aggregates with realtime updates', 'ok'],
   ['8. Secure auth & RBAC', 'MET — Supabase Auth, TOTP MFA, approval flow, RLS on every table', 'ok'],
@@ -87,15 +88,15 @@ export default function Deploy() {
           <button className="btn primary" onClick={run} disabled={busy}>{busy ? 'Running…' : 'Run checks now'}</button>
           {out && <div style={{ marginTop: '.7rem', display: 'grid', gap: '.4rem' }}>
             {out.map((o) => <div key={o[0]} className="card" style={{ padding: '.55rem .8rem' }}>{o[1] ? <span className="chip g">PASS</span> : <span className="chip r">FAIL</span>} {o[0]}{o[2] && <span className="small muted"> — {o[2]}</span>}</div>)}
-            <p className="small muted">These checks run against the live backend and this browser now. AI accuracy tests against a trained model remain NOT YET RUN.</p>
+            <p className="small muted">These checks run against the live backend and this browser now. Model accuracy figures are on the AI Engine page.</p>
           </div>}
         </div>
-        <div className="card"><h3>AI test matrix — vs trained YOLO model</h3>
+        <div className="card"><h3>AI test matrix — measured 22 Nov 2026</h3>
           <div className="tablewrap"><table><thead><tr><th>Case</th><th>Status</th></tr></thead><tbody>
-            {[['Red / amber / green recognition', 'NOT YET RUN vs trained model'], ['Directional arrow recognition', 'NOT YET RUN'], ['Multiple signals in frame', 'NOT YET RUN'], ['Night-time detection', 'NOT YET RUN'], ['Rain & glare', 'NOT YET RUN'], ['Occlusion', 'NOT YET RUN'], ['FP / FN analysis', 'NOT YET RUN — needs labelled ground truth'], ['Confidence calibration', 'NOT YET RUN'], ['Performance benchmarks', 'NOT YET RUN — no figures invented'], ['On-device heuristic', 'RUNNABLE — Mobile Camera Detection']].map((r) =>
+            {[['Red / amber / green recognition', 'RUN — 97.1% held-out accuracy (state model)'], ['Cross-dataset generalisation', 'RUN — 98.7% colour-claim precision on 2,494 unseen crops'], ['Detector on real driving frames', 'RUN — recall 50.8% (n) / 62.9% (s), lights ≥ 25 px'], ['Glare / blur / unlit → UNKNOWN', 'RUN — synthetic UNKNOWN test set'], ['Confidence threshold selection', 'RUN — operating point 0.7 + 3-frame check'], ['Browser inference speed', 'RUN — ~350 ms/frame WASM (server CPU)'], ['Ghanaian signals (field test)', 'NOT YET RUN — needs local labelled data'], ['Night-time & rain (Ghana)', 'NOT YET RUN'], ['Directional arrow direction', 'NOT YET RUN — not implemented'], ['Low-end phone latency', 'NOT YET RUN']].map((r) =>
               <tr key={r[0]}><td>{r[0]}</td><td><span className={'chip ' + (r[1].startsWith('RUN') ? 'g' : 'grey')}>{r[1]}</span></td></tr>)}
           </tbody></table></div>
-          <p className="small muted">Latency/accuracy numbers will only be reported after the trained model is evaluated on a labelled Ghana test set.</p></div>
+          <p className="small muted">Full figures and methodology are on the AI Engine page and in ml/README.md. Field validation on Ghanaian signals is the next gating step.</p></div>
       </div>
       <div className="card" style={{ marginTop: '1rem' }}><h3>Final acceptance checklist — 15 criteria, honest status</h3>
         <ul className="check">{ACCEPT.map((a) => <li key={a[0]}><span>{a[0]}</span><span className={'chip ' + (a[2] === 'ok' ? 'g' : a[2] === 'part' ? 'a' : 'r')}>{a[1]}</span></li>)}</ul></div>

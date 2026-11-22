@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useData } from '../lib/data';
 import { perms } from '../lib/roles';
+import { ModelAnalyse } from '../components/ModelAnalyse';
 
 type Scene = 'RED' | 'CAUTION' | 'GREEN' | 'GREEN_ARROW_LEFT' | 'PEDESTRIAN' | 'UNKNOWN';
 
@@ -38,8 +39,9 @@ export default function Detect() {
 
   return (
     <>
+      <ModelAnalyse />
       <div className="grid g2">
-        <div className="card"><h3>Detection frame — labelled demo scene</h3>
+        <div className="card"><h3>Verification pipeline walkthrough — labelled demo scene</h3>
           <div className="feed"><div className="fh"><span>DEMO SCENE — not a live camera</span><span>Frame {frame}</span></div>
             <div className="scene">
               <div style={{ position: 'absolute', left: '44%', top: '8%', width: 56, height: 150, background: '#0A2342', border: '2px solid #2E5E8F', borderRadius: 10 }} />
@@ -57,7 +59,7 @@ export default function Detect() {
             {record && <><label>Intersection</label><select value={ix} onChange={(e) => setIx(e.target.value)}>{intersections.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}</select></>}
           </>}
           {msg && <p className="small" style={{ color: 'var(--lime)' }}>{msg}</p>}
-          <p className="small muted">These scenes exercise the verification pipeline. They are not output of a trained YOLO model.</p>
+          <p className="small muted">These scenes illustrate the verification checks step by step. For real inference, use the AI model card above or Mobile Camera Detection.</p>
         </div>
         <div className="card"><h3>Verification panel — never colour alone</h3>
           <div className="sig"><div className={'lamp ' + (obscured || !main ? 'UNKNOWN' : main)}>{obscured ? '?' : main || '—'}</div>

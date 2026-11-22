@@ -50,6 +50,11 @@ npm run dev                  # http://localhost:5173
 npm run build                # type-check + production bundle in dist/
 ```
 
+## AI models
+
+See [`ml/README.md`](ml/README.md). Models are in `public/models/` and run in a Web Worker via onnxruntime-web.
+Ultralytics YOLO11 weights are AGPL-3.0.
+
 ## Database
 
 Migrations are in `supabase/migrations/` (already applied to the live project, in order):
@@ -59,6 +64,7 @@ Migrations are in `supabase/migrations/` (already applied to the live project, i
 3. `0003_harden_functions.sql` — RLS helpers moved to a private `app` schema
 4. `0004_stats_rpc.sql` — `detection_stats()` aggregate RPC
 5. `0005_realtime_profiles_audit.sql` — live directory and audit feed
+6. `0006_ai_pipeline.sql` — model-sourced detections and the real model registry
 
 Edge function source: `supabase/functions/admin-users/index.ts`.
 
@@ -73,8 +79,9 @@ Edge function source: `supabase/functions/admin-users/index.ts`.
 ## Honest status
 
 Live: authentication + MFA, RBAC/RLS, all dashboards on real database data, realtime feeds/presence, chat, comms,
-tickets, branding, evidence hashing, audit, mobile on-device heuristic detector.
-**Not yet built:** trained YOLO detection model, RTSP video gateway, native iOS/Android/desktop packaging.
+tickets, branding, evidence hashing, audit, and the **on-device AI detection pipeline** (YOLO11 detector + ATLIP
+signal-state classifier — see `ml/README.md` for measured accuracy and the Ghana fine-tuning procedure).
+**Not yet built:** Ghana-specific fine-tuning/field validation, RTSP video gateway, native iOS/Android/desktop packaging.
 Alerts are advisory only — always obey the physical signal and road rules.
 
 © Infinity Techub Intelligence · Eagle-eye productions
