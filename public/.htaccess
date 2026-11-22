@@ -1,5 +1,7 @@
 # Eagle Eye 360 — Apache / Hostinger configuration
 Options -Indexes
+AddType application/manifest+json .webmanifest
+AddType application/javascript .js
 RewriteEngine On
 
 # Force HTTPS
