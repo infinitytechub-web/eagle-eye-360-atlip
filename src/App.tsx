@@ -6,6 +6,15 @@ import { ModalProvider } from './components/ui';
 import { LoginScreen, MfaEnrollScreen, MfaVerifyScreen, PendingScreen, RecoveryScreen } from './components/AuthScreens';
 import { Shell } from './components/Shell';
 
+function ReadyGate() {
+  const { profile, signOut } = useAuth();
+  if (profile?.role === 'gateway') return (
+    <section id="login"><div className="card" style={{ maxWidth: 460 }}><h3>Service account</h3>
+      <p className="muted">This is a CCTV gateway machine account. It is used by the gateway service only and cannot use the web application.</p>
+      <button className="btn" onClick={() => signOut()}>Sign out</button></div></section>);
+  return <DataProvider><Shell /></DataProvider>;
+}
+
 function Gate() {
   const { gate } = useAuth();
   if (configError) return <div className="notice warn" style={{ margin: '2rem' }}>{configError}</div>;
@@ -16,7 +25,7 @@ function Gate() {
     case 'pending': return <PendingScreen />;
     case 'mfa-enroll': return <MfaEnrollScreen />;
     case 'mfa-verify': return <MfaVerifyScreen />;
-    case 'ready': return <DataProvider><Shell /></DataProvider>;
+    case 'ready': return <ReadyGate />;
   }
 }
 

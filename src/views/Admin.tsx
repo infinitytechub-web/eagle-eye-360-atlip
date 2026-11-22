@@ -71,7 +71,7 @@ export default function Admin() {
           <div className="tablewrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th>{manage && <th></th>}</tr></thead><tbody>
             {active.map((u) => { const st = statusOf(u, presence); return (
               <tr key={u.id}><td><strong>{u.full_name || '—'}</strong><br /><span className="small muted">{u.email}{u.command ? ' · ' + u.command : ''}</span></td>
-                <td>{manage && u.id !== me.id && (u.role !== 'super_admin' || me.role === 'super_admin')
+                <td>{manage && u.id !== me.id && u.role !== 'gateway' && (u.role !== 'super_admin' || me.role === 'super_admin')
                   ? <select value={u.role} onChange={(e) => update(u.id, { role: e.target.value }, `Role changed for ${u.email}.`)} style={{ minWidth: 170 }}>{ROLES.filter((r) => r !== 'super_admin' || me.role === 'super_admin').map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select>
                   : ROLE_LABEL[u.role]}</td>
                 <td><span className={'chip ' + (st === 'online' ? 'g' : st === 'idle' ? 'a' : 'grey')}>{st}</span></td>
@@ -87,7 +87,8 @@ export default function Admin() {
           {manage && <div className="card"><h3>Create user account</h3>
             <label>Email</label><input type="email" value={n.email} onChange={(e) => setN({ ...n, email: e.target.value })} />
             <label>Full name</label><input value={n.full_name} onChange={(e) => setN({ ...n, full_name: e.target.value })} maxLength={120} />
-            <label>Role</label><select value={n.role} onChange={(e) => setN({ ...n, role: e.target.value as Role })}>{ROLES.filter((r) => r !== 'super_admin' || me.role === 'super_admin').map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select>
+            <label>Role</label><select value={n.role} onChange={(e) => setN({ ...n, role: e.target.value as Role })}>{ROLES.filter((r) => r !== 'super_admin' || me.role === 'super_admin').map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}{me.role === 'super_admin' && <option value="gateway">{ROLE_LABEL.gateway}</option>}</select>
+            {n.role === 'gateway' && <p className="small muted">Machine identity for a CCTV gateway. Use an address like gw-accra-01@gateway.atlip.local; put the generated password in the gateway's .env file only. It cannot sign in to this web app.</p>}
             <label>Command / unit</label><input value={n.command} onChange={(e) => setN({ ...n, command: e.target.value })} placeholder="e.g. Accra Command" maxLength={120} />
             <button className="btn primary" style={{ marginTop: '.6rem' }} onClick={create}>Create account</button>
             <p className="small muted">A strong temporary password is generated in your browser and shown once. Accounts are created by a server-side function that verifies your role first.</p>

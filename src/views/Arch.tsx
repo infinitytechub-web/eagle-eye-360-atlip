@@ -2,7 +2,7 @@ const LAYERS: [string, string, boolean, string][] = [
   ['MULTI-PLATFORM CLIENTS', 'Web PWA (live) · iOS · Android · Windows · macOS', false, 'Web live'],
   ['SECURE API GATEWAY', 'Supabase Auth · JWT · RLS · Realtime WebSockets · Edge Functions', false, 'Live'],
   ['AI ENGINE', 'YOLO11 detector + ATLIP state CNN · ONNX Runtime (on-device)', true, 'Live'],
-  ['VIDEO ENGINE', 'RTSP · GStreamer · WebRTC', false, 'Not yet built'],
+  ['VIDEO ENGINE', 'ATLIP gateway · RTSP → HLS (FFmpeg) · ticketed access · server-side AI', false, 'Built — install pending'],
   ['INTELLIGENCE', 'GPS · Analytics · Alerts', false, 'Live'],
   ['SECURITY', 'Audit · Monitoring · Evidence', false, 'Live'],
   ['DATA INFRASTRUCTURE', 'PostgreSQL · Supabase · Secure Object Storage', false, 'Live'],
@@ -10,7 +10,7 @@ const LAYERS: [string, string, boolean, string][] = [
 const PRI: [string, string, string, string][] = [
   ['1', 'Working AI traffic-light detection', 'g', 'Live — trained two-stage pipeline on-device; measured on held-out and unseen real driving data. Next: fine-tune and validate on Ghanaian footage.'],
   ['2', 'Mobile camera and live detection', 'g', 'Live — getUserMedia on-device heuristic; verified state changes are stored server-side.'],
-  ['3', 'CCTV integration and monitoring', 'a', 'Partial — registration, status, audit and masked references live; video gateway and real streams not connected.'],
+  ['3', 'CCTV integration and monitoring', 'a', 'Gateway built and tested end-to-end (live video, tickets, AI, health, oversight); install on the camera network and connect real cameras.'],
   ['4', 'Intelligence dashboard and GPS', 'g', 'Live — dashboard, analytics, reports and map run on database data with realtime updates.'],
   ['5', 'Cybersecurity and administration', 'g', 'Live — Supabase Auth, MFA, RLS, approvals, audit, admin edge function.'],
   ['6', 'iOS, Android and desktop packaging', 'grey', 'Not built — installable PWA today; Capacitor and Tauri are the planned paths.'],
@@ -20,13 +20,13 @@ const PRI: [string, string, string, string][] = [
 export default function Arch() {
   return (
     <>
-      <div className="notice"><strong>Current recommendation:</strong> the AI detection engine is now live on-device. The critical path is collecting and labelling Ghanaian intersection footage to fine-tune and field-validate it (see ml/README.md), then the CCTV video gateway.</div>
+      <div className="notice"><strong>Current recommendation:</strong> the AI detection engine is now live on-device. The CCTV gateway is built; the critical path is installing it on the camera network and collecting labelled Ghanaian footage to fine-tune and field-validate the model (see gateway/README.md and ml/README.md).</div>
       <div className="card" style={{ marginTop: '1rem' }}><h3>System architecture — separation of application services</h3>
         <p className="small muted">Clients never talk to cameras or the database directly — everything passes through the authenticated API layer, and video will pass through the protected video gateway.</p>
         <div className="archflow">
           {LAYERS.map((l, i) => <div key={l[0]}>
             {i > 0 && <div className="archdown">▼</div>}
-            <div className={'archlayer' + (l[2] ? ' hot' : '')}><div className="lname">{l[0]} <span className={'chip ' + (l[3].startsWith('Live') || l[3] === 'Web live' ? 'g' : 'grey')} style={{ marginLeft: '.4rem' }}>{l[3]}</span></div><div className="lsub">{l[1]}</div></div>
+            <div className={'archlayer' + (l[2] ? ' hot' : '')}><div className="lname">{l[0]} <span className={'chip ' + (l[3].startsWith('Live') || l[3] === 'Web live' ? 'g' : l[3].startsWith('Built') ? 'a' : 'grey')} style={{ marginLeft: '.4rem' }}>{l[3]}</span></div><div className="lsub">{l[1]}</div></div>
           </div>)}
         </div>
       </div>

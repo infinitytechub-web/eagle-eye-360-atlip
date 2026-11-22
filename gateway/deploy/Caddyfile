@@ -1,0 +1,20 @@
+# TLS termination for the ATLIP gateway (Let's Encrypt certificates are obtained automatically).
+{$GATEWAY_DOMAIN} {
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+	# only the documented API is exposed
+	@api path /health /v1/*
+	handle @api {
+		reverse_proxy gateway:8090 {
+			header_up X-Forwarded-For {remote_host}
+		}
+	}
+	handle {
+		respond 404
+	}
+}

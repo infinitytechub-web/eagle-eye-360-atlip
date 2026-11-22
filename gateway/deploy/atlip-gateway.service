@@ -1,0 +1,24 @@
+# systemd unit for running the gateway without Docker (Ubuntu 22.04/24.04).
+# sudo cp deploy/atlip-gateway.service /etc/systemd/system/ && sudo systemctl enable --now atlip-gateway
+[Unit]
+Description=Eagle Eye 360 ATLIP CCTV gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=atlip
+WorkingDirectory=/opt/atlip-gateway
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/atlip-gateway/data
+CapabilityBoundingSet=
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+{
+  "name": "atlip-gateway",
+  "version": "1.0.0",
+  "description": "Eagle Eye 360 ATLIP — CCTV video gateway: RTSP ingest, ticketed HLS, health monitoring and server-side AI",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=20" },
+  "bin": { "atlip-gateway": "src/cli.js" },
+  "scripts": {
+    "start": "node src/server.js",
+    "cli": "node src/cli.js",
+    "check": "node --check src/server.js && node --check src/cli.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "onnxruntime-node": "^1.20.0"
+  }
+}

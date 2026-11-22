@@ -50,6 +50,11 @@ npm run dev                  # http://localhost:5173
 npm run build                # type-check + production bundle in dist/
 ```
 
+## CCTV gateway
+
+See [`gateway/README.md`](gateway/README.md): Node + FFmpeg service on the camera network — encrypted RTSP credential vault,
+ticketed HLS streaming, server-side AI, health monitoring and viewing-session oversight. Deploys with Docker Compose + Caddy.
+
 ## AI models
 
 See [`ml/README.md`](ml/README.md). Models are in `public/models/` and run in a Web Worker via onnxruntime-web.
@@ -65,6 +70,7 @@ Migrations are in `supabase/migrations/` (already applied to the live project, i
 4. `0004_stats_rpc.sql` — `detection_stats()` aggregate RPC
 5. `0005_realtime_profiles_audit.sql` — live directory and audit feed
 6. `0006_ai_pipeline.sql` — model-sourced detections and the real model registry
+7. `0007_cctv_gateway.sql` — gateways, CCTV sessions, least-privilege gateway role
 
 Edge function source: `supabase/functions/admin-users/index.ts`.
 
@@ -81,7 +87,8 @@ Edge function source: `supabase/functions/admin-users/index.ts`.
 Live: authentication + MFA, RBAC/RLS, all dashboards on real database data, realtime feeds/presence, chat, comms,
 tickets, branding, evidence hashing, audit, and the **on-device AI detection pipeline** (YOLO11 detector + ATLIP
 signal-state classifier — see `ml/README.md` for measured accuracy and the Ghana fine-tuning procedure).
-**Not yet built:** Ghana-specific fine-tuning/field validation, RTSP video gateway, native iOS/Android/desktop packaging.
+**CCTV gateway:** built and tested (`gateway/`) — install it on the camera network (see `gateway/README.md`).
+**Not yet built:** Ghana-specific fine-tuning/field validation, native iOS/Android/desktop packaging.
 Alerts are advisory only — always obey the physical signal and road rules.
 
 © Infinity Techub Intelligence · Eagle-eye productions

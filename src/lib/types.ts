@@ -1,4 +1,4 @@
-export type Role = 'super_admin' | 'system_admin' | 'supervisor' | 'analyst' | 'operator' | 'support_officer' | 'auditor';
+export type Role = 'super_admin' | 'system_admin' | 'supervisor' | 'analyst' | 'operator' | 'support_officer' | 'auditor' | 'gateway';
 export type SignalState = 'RED' | 'CAUTION' | 'GREEN' | 'UNKNOWN';
 
 export interface Profile {
@@ -9,7 +9,10 @@ export interface Intersection { id: string; name: string; city: string; lat: num
 export interface Camera {
   id: string; name: string; intersection_id: string; gateway_ref: string; status: 'Online' | 'Offline' | 'Obstructed';
   retention_days: number; events_count: number; obstruction_count: number; created_at: string;
+  gateway_id: string | null; stream_enabled: boolean; ai_enabled: boolean; last_frame_at: string | null; stream_info: Record<string, unknown>;
 }
+export interface Gateway { id: string; name: string; public_url: string; account_id: string | null; status: 'online' | 'offline' | 'unknown'; version: string | null; info: Record<string, unknown>; last_seen_at: string | null; created_at: string }
+export interface CctvSession { id: number; user_id: string | null; user_name: string; camera_id: string | null; gateway_id: string | null; client: string | null; started_at: string; last_activity_at: string }
 export interface DetectionEvent {
   id: number; intersection_id: string | null; camera_id: string | null; state: SignalState; detail: string | null;
   confidence: number | null; verified: boolean; source: string; user_id: string | null; created_at: string;

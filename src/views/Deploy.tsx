@@ -12,13 +12,13 @@ const PLATFORMS: [string, string, string, string][] = [
   ['Android', 'Capacitor + LiteRT / ONNX Runtime Mobile', 'grey', 'Not built'],
   ['Desktop', 'Tauri / Electron packaging', 'grey', 'Not built'],
   ['AI detection model', 'YOLO11 + ATLIP state classifier, on-device (ONNX Runtime Web)', 'g', 'Live'],
-  ['Video gateway (CCTV)', 'RTSP → WebRTC/HLS server-side service', 'grey', 'Not built'],
+  ['CCTV video gateway', 'Node + FFmpeg: RTSP → ticketed HLS, encrypted vault, server-side AI (Docker)', 'a', 'Built & tested — awaiting install on camera network'],
 ];
 const ACCEPT: [string, string, 'ok' | 'part' | 'no'][] = [
   ['1. Red/amber/green detection', 'MET — trained models live; 97.1% state accuracy in-domain; Ghana validation pending', 'part'],
   ['2. Directional signal recognition', 'PARTIAL — arrows classified by colour; direction not yet recognised', 'part'],
   ['3. Mobile camera integration', 'MET — live camera, results stored server-side', 'ok'],
-  ['4. Authorised CCTV integration', 'PARTIAL — registration & audit live; no video gateway/streams', 'part'],
+  ['4. Authorised CCTV integration', 'MET in software — gateway built & security-tested; install on the camera network pending', 'part'],
   ['5. Real-time AI inference (trained model)', 'MET — YOLO11n + state CNN on-device, ~3 fps in browser; Ghana fine-tuning pending', 'part'],
   ['6. GPS & intersection mapping', 'MET — map, manual assignment, device GPS comparison', 'ok'],
   ['7. Analytics dashboard', 'MET — database aggregates with realtime updates', 'ok'],

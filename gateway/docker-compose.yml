@@ -1,0 +1,37 @@
+# Eagle Eye 360 · ATLIP gateway — production stack (gateway + Caddy for automatic HTTPS).
+# From the repository root:   docker compose -f gateway/docker-compose.yml --env-file gateway/.env up -d --build
+services:
+  gateway:
+    build: { context: .., dockerfile: gateway/Dockerfile }
+    image: atlip-gateway:1.0.0
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      HOST: 0.0.0.0
+    volumes:
+      - gateway-data:/app/data          # encrypted vault + transient HLS segments
+    networks: [edge, cameras]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [gateway]
+    ports: ["80:80", "443:443"]
+    environment:
+      GATEWAY_DOMAIN: ${GATEWAY_DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    networks: [edge]
+
+networks:
+  edge: {}
+  cameras: {}   # attach to the camera VLAN as appropriate (e.g. macvlan) — cameras must NOT be internet-reachable
+
+volumes:
+  gateway-data: {}
+  caddy-data: {}

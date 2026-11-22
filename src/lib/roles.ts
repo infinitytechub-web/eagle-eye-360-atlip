@@ -8,6 +8,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   operator: 'Traffic Monitoring Operator',
   support_officer: 'Technical Support Officer',
   auditor: 'Read-only Auditor',
+  gateway: 'CCTV Gateway (service account)',
 };
 export const ROLE_CAN: Record<Role, string> = {
   super_admin: 'All modules, branding, user management',
@@ -17,8 +18,10 @@ export const ROLE_CAN: Record<Role, string> = {
   operator: 'Dashboard, detection, CCTV registration, alerts',
   support_officer: 'Devices, camera health, ticket handling',
   auditor: 'Read-only; exports logged',
+  gateway: 'Machine identity for a CCTV gateway — camera health, AI detections, viewing sessions only',
 };
-export const ROLES = Object.keys(ROLE_LABEL) as Role[];
+/** Human roles (selectable for people). The 'gateway' machine role is created separately by Super Administrators. */
+export const ROLES = (Object.keys(ROLE_LABEL) as Role[]).filter((r) => r !== 'gateway');
 
 /** Mirrors the database RLS policies so the UI never offers an action the server will refuse. */
 const P = {
@@ -40,5 +43,7 @@ export const perms = {
   write: (r?: Role) => !!r && r !== 'auditor',
   handleTickets: (r?: Role) => !!r && ['super_admin', 'system_admin', 'supervisor', 'support_officer'].includes(r),
   liveUsers: (r?: Role) => !!r && (P.command as readonly string[]).includes(r),
+  viewCctvLive: (r?: Role) => !!r && ['super_admin', 'system_admin', 'supervisor', 'analyst', 'operator', 'support_officer'].includes(r),
+  manageGateways: (r?: Role) => !!r && (P.admins as readonly string[]).includes(r),
   readAudit: (r?: Role) => !!r && ['super_admin', 'system_admin', 'supervisor', 'auditor'].includes(r),
 };

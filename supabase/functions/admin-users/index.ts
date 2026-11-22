@@ -4,7 +4,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const ROLES = ["super_admin", "system_admin", "supervisor", "analyst", "operator", "support_officer", "auditor"];
+const ROLES = ["super_admin", "system_admin", "supervisor", "analyst", "operator", "support_officer", "auditor", "gateway"];
+const SUPER_ONLY = ["super_admin", "gateway"]; // machine identities and super admins are created by super admins only
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
     const password = String(body.password || "");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json(400, { error: "Valid email required" });
     if (!ROLES.includes(role)) return json(400, { error: "Unknown role" });
-    if (role === "super_admin" && me.role !== "super_admin") return json(403, { error: "Only a super administrator can create super administrators" });
+    if (SUPER_ONLY.includes(role) && me.role !== "super_admin") return json(403, { error: "Only a super administrator can create this account type" });
     if (password.length < 12) return json(400, { error: "Temporary password must be at least 12 characters" });
     const { data: created, error } = await admin.auth.admin.createUser({
       email, password, email_confirm: true, user_metadata: { full_name },
@@ -58,7 +59,7 @@ Deno.serve(async (req) => {
     const patch: Record<string, unknown> = {};
     if (body.role !== undefined) {
       if (!ROLES.includes(String(body.role))) return json(400, { error: "Unknown role" });
-      if (body.role === "super_admin" && me.role !== "super_admin") return json(403, { error: "Only a super administrator can grant super administrator" });
+      if (SUPER_ONLY.includes(String(body.role)) && me.role !== "super_admin") return json(403, { error: "Only a super administrator can grant this role" });
       patch.role = body.role;
     }
     if (body.active !== undefined) patch.active = !!body.active;
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
       return json(400, { error: "You cannot demote or deactivate your own account" });
     const { data: target } = await admin.from("profiles").select("role,email").eq("id", id).single();
     if (!target) return json(404, { error: "User not found" });
-    if (target.role === "super_admin" && me.role !== "super_admin") return json(403, { error: "Only a super administrator can change a super administrator" });
+    if (SUPER_ONLY.includes(target.role) && me.role !== "super_admin") return json(403, { error: "Only a super administrator can change this account" });
     const { error } = await admin.from("profiles").update(patch).eq("id", id);
     if (error) return json(400, { error: error.message });
     await audit("User updated: " + JSON.stringify(patch), target.email);

@@ -13,6 +13,8 @@ const TABLES: [string, string, string][] = [
   ['chat_messages', 'Live chat (Command Group + direct messages) with read receipts', 'Only conversation participants can read or write'],
   ['comm_messages / comm_receipts', 'Channel messages, read receipts, acknowledgements', 'Broadcast & Emergency restricted to admins & supervisors'],
   ['tickets / ticket_events', 'Support tickets, SLA, history, internal notes, attachments', 'Duplicate open titles blocked by unique index · Internal notes staff-only'],
+  ['gateways', 'Registered CCTV gateways, heartbeat, linked service account', 'Read: active · Manage: admins · Heartbeat: own gateway account'],
+  ['cctv_sessions', 'Who watched which camera, when (live-view oversight)', 'Written by the gateway · Read: admins, supervisors, auditors, own sessions'],
   ['branding / branding_versions', 'Published identity and version history', 'Public read (login page) · Write: super admin only'],
 ];
 const RPC: [string, string][] = [
@@ -20,6 +22,7 @@ const RPC: [string, string][] = [
   ['detection_stats()', 'Aggregated 24h / 7-day statistics (RLS applies)'],
   ['designate_model(id)', 'Change the designated production model (role-checked)'],
   ['heartbeat()', 'Update last-seen time for presence'],
+  ['gateway_audit(actor, name, action, target)', 'Camera audit entry written by a gateway on behalf of the viewer it authorised'],
   ['functions/v1/admin-users', 'Edge function: create users, change roles, activate/deactivate (admins only)'],
 ];
 
