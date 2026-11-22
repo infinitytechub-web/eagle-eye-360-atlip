@@ -1,0 +1,15 @@
+{
+  "name": "Eagle Eye 360 — ATLIP",
+  "short_name": "Eagle Eye 360",
+  "description": "AI Traffic Light Detector & Intelligence Platform",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07182E",
+  "theme_color": "#0A2342",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
