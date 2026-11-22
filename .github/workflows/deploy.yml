@@ -19,12 +19,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Only pnpm lockfiles allowed (no npm / Yarn / Bun)
+        run: |
+          if git ls-files | grep -E '(^|/)(package-lock\.json|npm-shrinkwrap\.json|yarn\.lock|bun\.lockb?)$'; then
+            echo "::error::Competing lockfile committed — this project uses pnpm only (pnpm-lock.yaml)."; exit 1; fi
+      - uses: pnpm/action-setup@v6          # version from package.json "packageManager"
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
       - name: Build stamp (shows which commit is live at /version.json)
         run: |
           node -e "require('fs').writeFileSync('dist/version.json', JSON.stringify({version: require('./package.json').version, commit: process.env.GITHUB_SHA.slice(0,7), built_at: new Date().toISOString()}, null, 2) + '\n')"

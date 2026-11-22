@@ -61,13 +61,13 @@ The workflow:
 - Installs and launches the **iOS** app in the iOS Simulator. The job fails if it is not running.
 - Keeps screenshots of both launches as build artefacts.
 
-Local development:
+Local development (pnpm only; see the main README):
 ```bash
-npm ci && npm run build && npx cap sync      # web → native projects
-npx cap open android                         # Android Studio
-npx cap open ios                             # Xcode (macOS)
-cd desktop && npm ci && npm start            # desktop app against the live site
-cd desktop && npm test && npm run dist       # desktop installers for the current OS
+pnpm install --frozen-lockfile && pnpm run cap:sync   # web → native projects (run after any dependency change)
+pnpm run android                                     # open in Android Studio
+pnpm run ios                                         # open in Xcode (macOS)
+cd desktop && pnpm install --frozen-lockfile && pnpm start   # desktop app against the live site
+cd desktop && pnpm test && pnpm run dist                     # desktop installers for the current OS
 ```
 
 ## Signing and store submission (needs your accounts)

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Gateway administration CLI — run on the gateway host only.
-//   npm run cli keygen                         print fresh GATEWAY_VAULT_KEY and GATEWAY_TICKET_SECRET
-//   npm run cli add CAM-01 "rtsp://user:pass@10.0.0.5:554/Streaming/Channels/101" [--transcode]
-//   npm run cli list                           show configured cameras (credentials masked)
-//   npm run cli test CAM-01                    probe the camera source with ffprobe
-//   npm run cli remove CAM-01
+//   pnpm run cli keygen                         print fresh GATEWAY_VAULT_KEY and GATEWAY_TICKET_SECRET
+//   pnpm run cli add CAM-01 "rtsp://user:pass@10.0.0.5:554/Streaming/Channels/101" [--transcode]
+//   pnpm run cli list                           show configured cameras (credentials masked)
+//   pnpm run cli test CAM-01                    probe the camera source with ffprobe
+//   pnpm run cli remove CAM-01
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import readline from 'node:readline';

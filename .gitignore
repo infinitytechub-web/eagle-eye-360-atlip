@@ -7,3 +7,13 @@ dist
 .DS_Store
 supabase/.temp
 gateway/data
+
+# pnpm only — competing package-manager lockfiles must never be committed
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
+.yarnrc.yml
+.yarn/
+bun.lock
+bun.lockb
+package-lock.json.bak

@@ -155,7 +155,7 @@ export default function Cctv() {
           <label>Retention (days)</label><select value={ret} onChange={(e) => setRet(+e.target.value)} disabled={!canReg}><option>7</option><option>14</option><option>30</option></select>
           {err && <p className="small" style={{ color: '#FF8A84' }}>{err}</p>}
           <button className="btn primary" onClick={add} disabled={!canReg || busy} style={{ marginTop: '.6rem' }}>Register camera</button>
-          <p className="small muted">After registering, add the camera's RTSP source on the gateway host (<span className="mono">npm run cli add CAM-09</span>), then assign it to that gateway above.</p>
+          <p className="small muted">After registering, add the camera's RTSP source on the gateway host (<span className="mono">pnpm run cli add CAM-09</span>), then assign it to that gateway above.</p>
         </div>
         <div className="card"><h3>Live viewing sessions (oversight)</h3>
           <div className="small" style={{ display: 'grid', gap: '.35rem', maxHeight: 200, overflow: 'auto' }}>

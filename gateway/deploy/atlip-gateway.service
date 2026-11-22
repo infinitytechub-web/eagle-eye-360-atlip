@@ -9,6 +9,7 @@ Wants=network-online.target
 Type=simple
 User=atlip
 WorkingDirectory=/opt/atlip-gateway
+Environment=NODE_ENV=production ORT_DISABLE_TELEMETRY=1
 ExecStart=/usr/bin/node src/server.js
 Restart=always
 RestartSec=5

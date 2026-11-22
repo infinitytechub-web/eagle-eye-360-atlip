@@ -1,11 +1,23 @@
 {
   "name": "atlip-gateway",
   "version": "1.0.0",
-  "description": "Eagle Eye 360 ATLIP — CCTV video gateway: RTSP ingest, ticketed HLS, health monitoring and server-side AI",
+  "description": "Eagle Eye 360 ATLIP \u2014 CCTV video gateway: RTSP ingest, ticketed HLS, health monitoring and server-side AI",
   "type": "module",
   "private": true,
-  "engines": { "node": ">=20" },
-  "bin": { "atlip-gateway": "src/cli.js" },
+  "packageManager": "pnpm@12.21.0",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": ">=12.21.0",
+      "onFail": "error"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "atlip-gateway": "src/cli.js"
+  },
   "scripts": {
     "start": "node src/server.js",
     "cli": "node src/cli.js",

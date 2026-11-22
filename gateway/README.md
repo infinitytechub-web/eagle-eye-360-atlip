@@ -54,10 +54,12 @@ Requirements: Linux host with Docker, reachable to the cameras, a DNS name (e.g.
 
 ### Without Docker (Ubuntu)
 ```bash
-sudo apt install -y ffmpeg nodejs npm
-sudo useradd --system atlip && sudo mkdir -p /opt/atlip-gateway && sudo cp -r gateway/* /opt/atlip-gateway/
+# Node.js 22 LTS (from nodejs.org or NodeSource; distribution packages are often too old) + FFmpeg
+sudo apt install -y ffmpeg
+sudo corepack enable pnpm            # pnpm version comes from package.json "packageManager" (pnpm only — no npm/yarn)
+sudo useradd --system atlip && sudo mkdir -p /opt/atlip-gateway/models && sudo cp -r gateway/. /opt/atlip-gateway/
 sudo cp public/models/atlip-detector-yolo11n.onnx public/models/atlip-state-v2.onnx /opt/atlip-gateway/models/
-cd /opt/atlip-gateway && sudo npm ci --omit=dev && sudo chown -R atlip /opt/atlip-gateway
+cd /opt/atlip-gateway && sudo COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install --frozen-lockfile --prod && sudo chown -R atlip /opt/atlip-gateway
 sudo cp deploy/atlip-gateway.service /etc/systemd/system/ && sudo systemctl enable --now atlip-gateway
 ```
 Put Caddy (or nginx) in front for HTTPS using `deploy/Caddyfile`.
@@ -71,6 +73,8 @@ Put Caddy (or nginx) in front for HTTPS using `deploy/Caddyfile`.
 - Status: CCTV Surveillance Centre → Gateways (heartbeat every 30 s; offline after 2 min without one).
 - Rotating secrets: new `GATEWAY_TICKET_SECRET` invalidates outstanding tickets only. Changing `GATEWAY_VAULT_KEY` requires re-adding camera sources.
 - Back up `data/vault.enc` **and** the vault key separately.
+- **No third-party telemetry:** onnxruntime-node 1.31+ includes Microsoft usage telemetry. The gateway switches it off (`src/privacy.js`, the Docker image and the systemd unit all set `ORT_DISABLE_TELEMETRY=1`); keep it that way.
+- **Dependencies:** pnpm only (`pnpm install --frozen-lockfile`). The reviewed install-script policy is in `pnpm-workspace.yaml`: onnxruntime-node's script is denied because it only downloads optional NVIDIA CUDA libraries — the CPU runtime is already in the package.
 
 ## Legal
 Live CCTV processing of road users is personal-data processing. Operate under the Data Protection Act, 2012 (Act 843),

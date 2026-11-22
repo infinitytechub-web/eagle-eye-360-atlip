@@ -2,14 +2,21 @@
   "name": "eagle-eye-360-atlip",
   "private": true,
   "version": "2.0.0",
-  "description": "Eagle Eye 360 \u2014 ATLIP: AI Traffic Light Detector & Intelligence Platform",
   "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": ">=12.21.0",
+      "onFail": "error"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "cap:sync": "npm run build && cap sync",
+    "cap:sync": "pnpm run build && cap sync",
     "android": "cap open android",
     "ios": "cap open ios"
   },
@@ -38,5 +45,6 @@
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.0"
-  }
+  },
+  "description": "Eagle Eye 360 \u2014 ATLIP: AI Traffic Light Detector & Intelligence Platform"
 }

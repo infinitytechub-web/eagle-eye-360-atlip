@@ -9,7 +9,7 @@ const FILE = () => path.join(config.dataDir, 'vault.enc');
 
 function key() {
   const k = Buffer.from(config.vaultKey(), 'base64');
-  if (k.length !== 32) throw new Error('GATEWAY_VAULT_KEY must be 32 bytes, base64-encoded (run: npm run cli keygen)');
+  if (k.length !== 32) throw new Error('GATEWAY_VAULT_KEY must be 32 bytes, base64-encoded (run: pnpm run cli keygen)');
   return k;
 }
 

@@ -5,6 +5,7 @@
 //   POST /v1/streams/:cam/ticket               [Bearer] → { ticket, playlist, expiresAt }
 //   GET  /v1/hls/:cam/:ticket/index.m3u8       ticketed HLS playlist
 //   GET  /v1/hls/:cam/:ticket/seg_00001.ts     ticketed HLS segment
+import './privacy.js'; // must stay the first import: disables runtime telemetry before the AI engine loads
 import http from 'node:http';
 import fs from 'node:fs';
 import { config } from './config.js';

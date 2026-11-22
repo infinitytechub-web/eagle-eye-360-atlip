@@ -43,11 +43,18 @@ React 18 + Vite + TypeScript (PWA)  ──HTTPS/WSS──►  Supabase
 
 ## Local development
 
+**Package manager: pnpm only.** The version is pinned in `package.json` (`"packageManager": "pnpm@12.21.0"`) and installed by
+Corepack (bundled with Node.js 22). Do not use npm, Yarn or Bun, and never commit `package-lock.json`, `yarn.lock` or `bun.lock`
+(they are git-ignored). The web app, `desktop/` and `gateway/` are independent packages, each with its own `pnpm-lock.yaml`
+and a `pnpm-workspace.yaml` that records which dependency install scripts are allowed.
+
 ```bash
-npm install
-cp .env.example .env.local   # or use .env.production values
-npm run dev                  # http://localhost:5173
-npm run build                # type-check + production bundle in dist/
+corepack enable pnpm                # once per machine
+pnpm install --frozen-lockfile      # exact versions from pnpm-lock.yaml
+cp .env.example .env.local          # or use .env.production values
+pnpm run dev                        # http://localhost:5173
+pnpm run build                      # type-check + production bundle in dist/
+pnpm add <pkg> / pnpm remove <pkg>  # change dependencies (commit package.json + pnpm-lock.yaml together)
 ```
 
 ## CCTV gateway
@@ -77,7 +84,7 @@ Edge function source: `supabase/functions/admin-users/index.ts`.
 ## Deployment (GitHub → Hostinger)
 
 1. Push to `main`.
-2. GitHub Actions (`.github/workflows/deploy.yml`) runs `npm ci && npm run build` and force-pushes `dist/` to the `deploy` branch.
+2. GitHub Actions (`.github/workflows/deploy.yml`) runs `pnpm install --frozen-lockfile && pnpm run build` and force-pushes `dist/` (plus `version.json`) to the `deploy` branch.
 3. Hostinger's Git auto-deploy pulls the `deploy` branch into `atlip.infinitytechub.com/public_html`.
 
 `public/.htaccess` provides HTTPS redirect, SPA fallback, HSTS, CSP and caching headers.

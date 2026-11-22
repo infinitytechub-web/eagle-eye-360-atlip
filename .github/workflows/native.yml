@@ -9,7 +9,7 @@ on:
   push:
     tags: ['v*']
     branches: [main]
-    paths: ['android/**', 'ios/**', 'desktop/**', 'src/**', 'public/**', 'capacitor.config.ts', 'package.json', 'package-lock.json', '.github/workflows/native.yml']
+    paths: ['android/**', 'ios/**', 'desktop/**', 'src/**', 'public/**', 'capacitor.config.ts', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', '.github/workflows/native.yml']
   workflow_dispatch:
 
 permissions:
@@ -25,14 +25,15 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v5
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 22, cache: pnpm }
       - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: '21', cache: gradle }
       - run: echo "APP_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
-      - run: npm ci
-      - run: npm run build
-      - run: npx cap sync android
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm exec cap sync android
       - name: Release signing (only if secrets are configured)
         env:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -85,12 +86,13 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v5
-        with: { node-version: 22, cache: npm }
+        with: { node-version: 22, cache: pnpm }
       - run: echo "APP_VERSION=$(node -p "require('./package.json').version")" >> "$GITHUB_ENV"
-      - run: npm ci
-      - run: npm run build
-      - run: npx cap sync ios
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm exec cap sync ios
       - name: Build for the iOS Simulator
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
@@ -137,11 +139,13 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # unsigned unless signing certificates are configured
     steps:
       - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+        with: { package_json_file: desktop/package.json }
       - uses: actions/setup-node@v5
-        with: { node-version: 22, cache: npm, cache-dependency-path: desktop/package-lock.json }
-      - run: npm ci
-      - run: npm test
-      - run: npx electron-builder ${{ matrix.target }} --publish never
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: desktop/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm exec electron-builder ${{ matrix.target }} --publish never
       - name: Collect
         run: |
           mkdir -p ../out

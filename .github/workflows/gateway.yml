@@ -1,0 +1,39 @@
+# CCTV gateway — builds the production Docker image (pnpm, frozen lockfile) and smoke-tests it.
+# The image is not pushed anywhere; installation on the camera network is described in gateway/README.md.
+name: Gateway image
+
+on:
+  push:
+    branches: [main]
+    paths: ['gateway/**', 'public/models/atlip-detector-yolo11n.onnx', 'public/models/atlip-state-v2.onnx', '.github/workflows/gateway.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v6
+        with: { package_json_file: gateway/package.json }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: gateway/pnpm-lock.yaml }
+      - name: Install (pnpm, frozen lockfile) and syntax check
+        working-directory: gateway
+        run: pnpm install --frozen-lockfile --prod && pnpm run check
+      - name: Build production image
+        run: docker build -f gateway/Dockerfile -t atlip-gateway:ci .
+      - name: Smoke test (offline, non-root, FFmpeg, AI models, no telemetry)
+        run: |
+          set -e
+          E="-e GATEWAY_ID=GW-CI -e GATEWAY_DOMAIN=gw.example.invalid -e GATEWAY_ACCOUNT_EMAIL=ci@example.invalid -e GATEWAY_ACCOUNT_PASSWORD=x -e GATEWAY_VAULT_KEY=$(head -c32 /dev/urandom | base64) -e GATEWAY_TICKET_SECRET=$(head -c32 /dev/urandom | base64) -e SUPABASE_URL=http://127.0.0.1:9 -e SUPABASE_PUBLISHABLE_KEY=x"
+          test "$(docker run --rm atlip-gateway:ci id -un)" = atlip
+          docker run --rm atlip-gateway:ci ffmpeg -hide_banner -version | head -1
+          docker run --rm atlip-gateway:ci sh -c 'test ! -e package-lock.json && test -e pnpm-lock.yaml'
+          OUT=$(docker run --rm --network none $E atlip-gateway:ci node --input-type=module -e "import './src/privacy.js'; const { loadModels } = await import('./src/ai.js'); await loadModels(); console.log('MODELS_OK');" 2>&1)
+          echo "$OUT"
+          echo "$OUT" | grep -q MODELS_OK
+          if echo "$OUT" | grep -qi telemetry; then echo "::error::onnxruntime telemetry is active"; exit 1; fi

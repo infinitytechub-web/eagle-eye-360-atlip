@@ -26,7 +26,7 @@ export const config = {
   supabaseKey: env('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_4Kqw1-U1pJJDGRJXesl3xA_fdAvpFT-'),
   serviceEmail: () => req('GATEWAY_ACCOUNT_EMAIL'),
   servicePassword: () => req('GATEWAY_ACCOUNT_PASSWORD'),
-  vaultKey: () => req('GATEWAY_VAULT_KEY'),          // base64, 32 bytes — `npm run cli keygen`
+  vaultKey: () => req('GATEWAY_VAULT_KEY'),          // base64, 32 bytes — `pnpm run cli keygen`
   ticketSecret: () => req('GATEWAY_TICKET_SECRET'),  // base64, 32 bytes
   ticketTtlSec: Number(env('TICKET_TTL_SEC', '300')),
   idleStopSec: Number(env('STREAM_IDLE_STOP_SEC', '60')),
