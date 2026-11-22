@@ -1,0 +1,170 @@
+# Native apps — Android (APK/AAB), iOS (simulator build + unsigned device archive) and Desktop (Windows, macOS, Linux).
+# Every run: builds, runs tests, installs and launches the mobile apps in an emulator/simulator and keeps screenshots.
+# Tags v*: also publishes a GitHub Release with all installers and SHA256SUMS.txt.
+# Optional signing secrets (builds stay unsigned without them):
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+name: Native apps
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21', cache: gradle }
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Release signing (only if secrets are configured)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > android/release.jks
+            printf 'storeFile=../release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KS_PASS" "$KEY_ALIAS" "$KEY_PASS" > android/keystore.properties
+            echo "SIGNED=1" >> "$GITHUB_ENV"
+          else echo "No signing secrets — release builds are unsigned."; fi
+      - name: Gradle build (debug APK, release APK, Play bundle)
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew --no-daemon assembleDebug assembleRelease bundleRelease
+      - name: Collect
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/debug/app-debug.apk out/ATLIP-${GITHUB_REF_NAME//\//-}-android-debug.apk
+          for f in android/app/build/outputs/apk/release/*.apk; do cp "$f" "out/ATLIP-${GITHUB_REF_NAME//\//-}-android-release$( [ "$SIGNED" = 1 ] || echo -unsigned ).apk"; done
+          cp android/app/build/outputs/bundle/release/app-release.aab "out/ATLIP-${GITHUB_REF_NAME//\//-}-android-release$( [ "$SIGNED" = 1 ] || echo -unsigned ).aab"
+          rm -f android/release.jks android/keystore.properties
+          ls -la out
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Install & launch on an Android 15 emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: |
+            adb install -r out/*-android-debug.apk
+            adb shell am start -W -n gh.infinitytechub.atlip/.MainActivity
+            sleep 30
+            adb exec-out screencap -p > out/android-emulator-screenshot.png
+            adb shell dumpsys window | grep -E "mCurrentFocus|mFocusedApp" | tee out/android-focus.txt
+            adb logcat -d | grep -E "FATAL EXCEPTION|AndroidRuntime" > out/android-crash.txt || true
+            grep -q "gh.infinitytechub.atlip" out/android-focus.txt
+            test ! -s out/android-crash.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: out/, if-no-files-found: error }
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync ios
+      - name: Build for the iOS Simulator
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO build | tail -20
+      - name: Unsigned device archive (sign with your Apple Developer account to ship)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -archivePath build/ATLIP.xcarchive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive | tail -20
+      - name: Install & launch in the iOS Simulator
+        run: |
+          set -e
+          mkdir -p out
+          APP=$(find build/sim -name "App.app" -path "*iphonesimulator*" | head -1)
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next(x['udid'] for k,v in d.items() if 'iOS' in k for x in v if x['name'].startswith('iPhone')))")
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" gh.infinitytechub.atlip | tee out/ios-launch.txt
+          sleep 30
+          xcrun simctl io "$UDID" screenshot out/ios-simulator-screenshot.png
+          xcrun simctl spawn "$UDID" launchctl list | grep -i "gh.infinitytechub.atlip" | tee out/ios-running.txt
+          test -s out/ios-running.txt
+          N=ATLIP-${GITHUB_REF_NAME//\//-}
+          (cd "$(dirname "$APP")" && zip -qry "$GITHUB_WORKSPACE/out/$N-ios-simulator.zip" App.app)
+          (cd build && zip -qry "$GITHUB_WORKSPACE/out/$N-ios-unsigned.xcarchive.zip" ATLIP.xcarchive)
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with: { name: ios, path: out/, if-no-files-found: error }
+
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: --linux, name: desktop-linux }
+          - { os: windows-latest, target: --win, name: desktop-windows }
+          - { os: macos-15, target: --mac, name: desktop-macos }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run: { working-directory: desktop, shell: bash }
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # unsigned unless signing certificates are configured
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: desktop/package-lock.json }
+      - run: npm ci
+      - run: npm test
+      - run: npx electron-builder ${{ matrix.target }} --publish never
+      - name: Collect
+        run: |
+          mkdir -p ../out
+          find release -maxdepth 1 -type f \( -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" \) -exec cp {} ../out/ \;
+          ls -la ../out
+      - uses: actions/upload-artifact@v4
+        with: { name: '${{ matrix.name }}', path: out/, if-no-files-found: error }
+
+  release:
+    needs: [android, ios, desktop]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+      - name: Checksums & build report
+        run: |
+          mkdir -p dist
+          find artifacts -type f \( -name "*.apk" -o -name "*.aab" -o -name "*.zip" -o -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" \) -exec cp {} dist/ \;
+          cp artifacts/android/android-emulator-screenshot.png dist/ 2>/dev/null || true
+          cp artifacts/ios/ios-simulator-screenshot.png dist/ 2>/dev/null || true
+          (cd dist && sha256sum * > SHA256SUMS.txt)
+          { echo "## ATLIP native builds — ${GITHUB_REF_NAME}"; echo; echo '| File | Size | SHA-256 |'; echo '|---|---|---|'
+            cd dist; for f in *; do [ "$f" = SHA256SUMS.txt ] && continue; echo "| $f | $(du -h "$f" | cut -f1) | \`$(sha256sum "$f" | cut -c1-16)…\` |"; done; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env: { GH_TOKEN: '${{ secrets.GITHUB_TOKEN }}' }
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "Eagle Eye 360 ATLIP $GITHUB_REF_NAME" \
+            --notes "Android, iOS and desktop apps for Eagle Eye 360 · ATLIP. Verify downloads against SHA256SUMS.txt. Unsigned builds: see docs/NATIVE_APPS.md for signing and store submission." \
+            || gh release upload "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --clobber

@@ -50,6 +50,26 @@ export default function Admin() {
       setN({ email: '', full_name: '', role: 'operator', command: '' });
     } catch (e) { setErr(errMsg(e)); }
   }
+  function resetPassword(u: { id: string; email: string }) {
+    modal({ title: 'Reset password', ok: 'Reset password', body: <>
+      <p>Reset the password for <strong>{u.email}</strong>?</p>
+      <ul className="small"><li>A strong temporary password is generated and shown to you once.</li><li>The user is signed out on every device.</li>
+        <li>Their authenticator app (MFA) and passkeys are revoked.</li><li>At next sign-in they must choose a new password <strong>and re-enrol an authenticator</strong> before accessing anything.</li></ul></>,
+      cb: async () => {
+        setErr(''); setMsg('');
+        const pw = strongPassword(18);
+        try {
+          await callAdmin({ action: 'reset_password', id: u.id, password: pw });
+          reloadDirectory();
+          modal({ title: 'Temporary password', ok: 'I have recorded it securely', body: <>
+            <p><strong>{u.email}</strong></p>
+            <p>Give this temporary password to the user through a secure channel (in person or by phone — not by email or chat):</p>
+            <p className="mono" style={{ fontSize: '1rem', userSelect: 'all' }}>{pw}</p>
+            <p className="small muted">It only works once: the user must replace it and set up their authenticator again at next sign-in.</p></> });
+        } catch (e) { setErr(errMsg(e)); }
+      } });
+  }
+
   async function backup() {
     const tables = ['intersections', 'cameras', 'ai_models', 'alerts', 'evidence_records', 'tickets', 'comm_messages'] as const;
     const out: Record<string, unknown> = { exported_at: new Date().toISOString(), exported_by: me.email, note: 'Configuration & records export (RLS-scoped). No video, no credentials.' };
@@ -75,7 +95,10 @@ export default function Admin() {
                   ? <select value={u.role} onChange={(e) => update(u.id, { role: e.target.value }, `Role changed for ${u.email}.`)} style={{ minWidth: 170 }}>{ROLES.filter((r) => r !== 'super_admin' || me.role === 'super_admin').map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}</select>
                   : ROLE_LABEL[u.role]}</td>
                 <td><span className={'chip ' + (st === 'online' ? 'g' : st === 'idle' ? 'a' : 'grey')}>{st}</span></td>
-                {manage && <td>{u.id !== me.id && (u.role !== 'super_admin' || me.role === 'super_admin') && <button className="btn small danger" onClick={() => modal({ title: 'Deactivate account', body: `Deactivate ${u.email}? They lose all access immediately.`, ok: 'Deactivate', cb: () => update(u.id, { active: false }, `${u.email} deactivated.`) })}>Deactivate</button>}</td>}
+                {manage && <td><div className="pillrow">
+                  {me.role === 'super_admin' && u.id !== me.id && u.role !== 'gateway' && <button className="btn small" onClick={() => resetPassword(u)}>Reset password</button>}
+                  {u.id !== me.id && (u.role !== 'super_admin' || me.role === 'super_admin') && <button className="btn small danger" onClick={() => modal({ title: 'Deactivate account', body: `Deactivate ${u.email}? They lose all access immediately.`, ok: 'Deactivate', cb: () => update(u.id, { active: false }, `${u.email} deactivated.`) })}>Deactivate</button>}
+                </div>{(u.password_change_required || u.mfa_reenroll_required) && <span className="chip a small" style={{ marginTop: '.3rem' }}>Reset pending: {u.password_change_required ? 'new password' : 'MFA re-enrolment'}</span>}</td>}
               </tr>); })}
           </tbody></table></div>
           <h3 style={{ marginTop: '1rem' }}>Role permissions</h3>

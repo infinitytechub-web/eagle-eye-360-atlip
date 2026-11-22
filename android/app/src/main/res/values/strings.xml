@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Eagle Eye 360 ATLIP</string>
+    <string name="title_activity_main">Eagle Eye 360 ATLIP</string>
+    <string name="package_name">gh.infinitytechub.atlip</string>
+    <string name="custom_url_scheme">gh.infinitytechub.atlip</string>
+</resources>

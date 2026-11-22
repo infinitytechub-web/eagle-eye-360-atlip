@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase, audit } from './supabase';
 import type { Profile } from './types';
 
-type Gate = 'loading' | 'signed-out' | 'recovery' | 'pending' | 'mfa-enroll' | 'mfa-verify' | 'ready';
+type Gate = 'loading' | 'signed-out' | 'recovery' | 'pending' | 'password-change' | 'mfa-reenroll' | 'mfa-enroll' | 'mfa-verify' | 'ready';
 interface AuthCtx {
   session: Session | null; profile: Profile | null; gate: Gate;
   refreshProfile: () => Promise<void>; recheckMfa: () => Promise<void>; signOut: (reason?: string) => Promise<void>;
@@ -27,6 +27,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: p } = await supabase.from('profiles').select('*').eq('id', s.user.id).single();
     setProfile((p as Profile) || null);
     if (!p || !p.active) { setGate('pending'); return; }
+    // After a Super Administrator password reset: first a new password, then a new authenticator (enforced by the DB too)
+    if (p.password_change_required) { setGate('password-change'); return; }
+    if (p.mfa_reenroll_required) {
+      const { data: aal0 } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal0?.currentLevel === 'aal2') {
+        const { error } = await supabase.rpc('complete_mfa_reenrolment');
+        if (!error) { const { data: p2 } = await supabase.from('profiles').select('*').eq('id', s.user.id).single(); setProfile(p2 as Profile); }
+        else { setGate('mfa-reenroll'); return; }
+      } else { setGate('mfa-reenroll'); return; }
+    }
     // MFA: verified TOTP factors raise the session to AAL2. Super Administrators must use MFA.
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') { setGate('mfa-verify'); return; }

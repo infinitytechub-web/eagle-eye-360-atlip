@@ -28,6 +28,10 @@ Deno.serve(async (req) => {
 
   const { data: me } = await admin.from("profiles").select("id, role, active, full_name, email").eq("id", who.user.id).single();
   if (!me?.active || !["super_admin", "system_admin"].includes(me.role)) return json(403, { error: "Administrators only" });
+  // Super Administrators must use an MFA-verified session (AAL2) for administrative actions — not just the UI.
+  let aal = "aal1";
+  try { aal = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).aal || "aal1"; } catch { /* treat as aal1 */ }
+  if (me.role === "super_admin" && aal !== "aal2") return json(403, { error: "Multi-factor verification required for super administrator actions" });
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return json(400, { error: "Invalid JSON" }); }
@@ -72,6 +76,25 @@ Deno.serve(async (req) => {
     const { error } = await admin.from("profiles").update(patch).eq("id", id);
     if (error) return json(400, { error: error.message });
     await audit("User updated: " + JSON.stringify(patch), target.email);
+    return json(200, { ok: true });
+  }
+
+  if (action === "reset_password") {
+    // Super Administrator only. Sets a temporary password, revokes MFA factors, passkeys and all sessions,
+    // and forces the user to choose a new password AND re-enrol an authenticator at next sign-in.
+    if (me.role !== "super_admin") return json(403, { error: "Only a super administrator can reset passwords" });
+    const id = String(body.id || "");
+    const password = String(body.password || "");
+    if (id === me.id) return json(400, { error: "Use 'Forgot password' to reset your own password" });
+    if (password.length < 12) return json(400, { error: "Temporary password must be at least 12 characters" });
+    const { data: target } = await admin.from("profiles").select("id, role, email, full_name").eq("id", id).single();
+    if (!target) return json(404, { error: "User not found" });
+    if (target.role === "gateway") return json(400, { error: "Gateway service accounts are rotated in the gateway's .env, not here" });
+    const { error: e1 } = await admin.auth.admin.updateUserById(id, { password });
+    if (e1) return json(400, { error: e1.message });
+    const { error: e2 } = await admin.rpc("admin_credentials_reset", { p_user: id, p_by: me.id });
+    if (e2) return json(500, { error: "Password changed but reset state failed: " + e2.message });
+    await audit("Password reset by super administrator — MFA re-enrolment required", target.email);
     return json(200, { ok: true });
   }
 

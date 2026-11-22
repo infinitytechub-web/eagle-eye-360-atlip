@@ -4,6 +4,7 @@ export type SignalState = 'RED' | 'CAUTION' | 'GREEN' | 'UNKNOWN';
 export interface Profile {
   id: string; email: string; full_name: string; role: Role; command: string; active: boolean;
   theme: 'dark' | 'light'; prefs: Record<string, unknown>; last_seen_at: string | null; created_at: string;
+  password_change_required?: boolean; mfa_reenroll_required?: boolean; credentials_reset_at?: string | null;
 }
 export interface Intersection { id: string; name: string; city: string; lat: number; lon: number; map_x: number; map_y: number; current_state: SignalState }
 export interface Camera {

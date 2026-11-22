@@ -14,6 +14,8 @@ const V = {
   detect: lazy(() => import('../views/Detect')),
   mobile: lazy(() => import('../views/Mobile')),
   cctv: lazy(() => import('../views/Cctv')),
+  voice: lazy(() => import('../views/VoiceAlerts')),
+  mysecurity: lazy(() => import('../views/MySecurity')),
   analytics: lazy(() => import('../views/Analytics')),
   geo: lazy(() => import('../views/Geo')),
   alerts: lazy(() => import('../views/Alerts')),
@@ -36,6 +38,7 @@ const NAV: { sec?: string; key?: ViewKey; icon?: string; label?: string; title?:
   { key: 'detect', icon: '◉', label: 'AI Traffic Light Detection', title: 'AI Traffic Light Detection', sub: 'Verification pipeline — housing, region, position, context, temporal checks' },
   { key: 'mobile', icon: '▣', label: 'Mobile Camera Detection', title: 'Mobile Camera Detection', sub: 'On-device heuristic detector — not a trained YOLO model' },
   { key: 'cctv', icon: '▤', label: 'CCTV Surveillance Centre', title: 'CCTV Surveillance Centre', sub: 'Authorised cameras only · masked gateway references' },
+  { key: 'voice', icon: '🔊', label: 'Voice Traffic Alerts', title: 'Voice Traffic-Light Alerts', sub: 'Location-aware spoken alerts · processed on your device only' },
   { sec: 'Intelligence' },
   { key: 'analytics', icon: '▦', label: 'Analytics & Intelligence', title: 'Traffic Intelligence & Analytics', sub: 'Observed states ≠ violations · confidence & camera performance' },
   { key: 'geo', icon: '⬢', label: 'GPS & Geospatial', title: 'GPS & Geospatial Intelligence', sub: 'Manual camera-to-intersection assignment · GPS never auto-assigns' },
@@ -45,6 +48,7 @@ const NAV: { sec?: string; key?: ViewKey; icon?: string; label?: string; title?:
   { key: 'comms', icon: '✉', label: 'Communication Centre', title: 'Communication Centre', sub: 'Channels · broadcasts · read receipts & acknowledgements' },
   { key: 'support', icon: '✚', label: 'IT Help & Support Centre', title: 'IT Help & Support Centre', sub: 'Tickets · SLA tracking · assignment, escalation & resolution history' },
   { sec: 'Platform' },
+  { key: 'mysecurity', icon: '🔐', label: 'My Account Security', title: 'My Account Security', sub: 'Passkeys · password · authenticator app' },
   { key: 'aiengine', icon: '⬣', label: 'AI Engine & Model Registry', title: 'AI Engine & Model Registry', sub: '10-step pipeline · versions, evaluation, rollback' },
   { key: 'security', icon: '⛉', label: 'Security Monitoring Centre', title: 'Security Monitoring Centre', sub: 'OWASP-aligned controls · incidents · audit' },
   { key: 'admin', icon: '⚙', label: 'System Administration', title: 'System Administration', sub: 'Users & RBAC (7 roles) · approvals · backup · audit', show: (r) => perms.viewAdmin(r) },
@@ -61,6 +65,7 @@ export function Shell() {
   const { branding, theme, setTheme } = useBranding();
   const [view, setView] = useState<ViewKey>(viewFromHash);
   const [online, setOnline] = useState(navigator.onLine);
+  const [menuOpen, setMenuOpen] = useState(false); // phones / native apps: collapsible navigation
   const now = useNow();
   const role = profile!.role;
 
@@ -72,21 +77,29 @@ export function Shell() {
   const item = NAV.find((n) => n.key === view)!;
   const allowed = !item.show || item.show(role);
   const View = V[allowed ? view : 'dashboard'];
-  const go = (k: ViewKey) => { window.location.hash = '#/' + k; window.scrollTo({ top: 0 }); };
+  const go = (k: ViewKey) => { window.location.hash = '#/' + k; setMenuOpen(false); window.scrollTo({ top: 0 }); };
+  useEffect(() => { if (!menuOpen) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [menuOpen]);
   const toggleTheme = async () => { const t = theme === 'light' ? 'dark' : 'light'; setTheme(t); await supabase.from('profiles').update({ theme: t }).eq('id', profile!.id); };
   const dark = theme !== 'light';
 
   return (
     <div id="app" style={{ display: 'block' }}>
       <div className="shell">
-        <aside style={{ background: `linear-gradient(180deg,#06162B,${branding.primary})` }}>
-          <div className="brand"><Logo src={branding.logo} size={46} /><div><strong>{branding.sysName}</strong><br /><span className="small" style={{ color: '#B9C9DE' }}>ATLIP Command</span></div></div>
+        <aside className={menuOpen ? 'open' : ''} style={{ background: `linear-gradient(180deg,#06162B,${branding.primary})` }}>
+          <div className="brandrow">
+            <div className="brand"><Logo src={branding.logo} size={46} /><div><strong>{branding.sysName}</strong><br /><span className="small" style={{ color: '#B9C9DE' }}>ATLIP Command</span></div></div>
+            <button type="button" className="btn small menu-toggle" aria-expanded={menuOpen} aria-controls="mainnav" onClick={() => setMenuOpen((o) => !o)}>
+              {menuOpen ? '✕ Close' : '☰ Menu'}
+            </button>
+          </div>
+          <div className="aside-body" id="mainnav">
           <div className="small" style={{ padding: '0 .5rem .6rem', color: '#B9C9DE' }}>Signed in as<br /><strong style={{ color: '#fff' }}>{profile!.full_name || profile!.email}</strong><br />{ROLE_LABEL[role]} · {profile!.email}</div>
           <nav aria-label="Main">
             {NAV.map((n, i) => n.sec ? <div key={i} className="sec">{n.sec}</div>
               : (!n.show || n.show(role)) && <button key={n.key} data-label={n.label} className={view === n.key ? 'active' : ''} aria-current={view === n.key ? 'page' : undefined} onClick={() => go(n.key!)}>{n.icon} {n.label}</button>)}
           </nav>
           <div style={{ marginTop: '1rem', display: 'grid', gap: '.5rem' }}><button className="btn small" onClick={() => signOut()}>Sign out</button></div>
+          </div>
         </aside>
         <main>
           <div className="topbar">

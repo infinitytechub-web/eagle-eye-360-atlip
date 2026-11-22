@@ -15,6 +15,10 @@ const TABLES: [string, string, string][] = [
   ['tickets / ticket_events', 'Support tickets, SLA, history, internal notes, attachments', 'Duplicate open titles blocked by unique index · Internal notes staff-only'],
   ['gateways', 'Registered CCTV gateways, heartbeat, linked service account', 'Read: active · Manage: admins · Heartbeat: own gateway account'],
   ['cctv_sessions', 'Who watched which camera, when (live-view oversight)', 'Written by the gateway · Read: admins, supervisors, auditors, own sessions'],
+  ['user_passkeys', 'Registered passkeys (credential ID, public key, counter, device type) — never private keys', 'Read: own + admins · Rename: own · Delete: own or super admin · Insert: passkey service only'],
+  ['webauthn_challenges', 'Single-use 5-minute WebAuthn challenges and app sign-in hand-off codes (hashed)', 'No client access — passkey service only'],
+  ['credential_resets', 'Super-admin password resets awaiting completion (password-hash snapshot to block reuse)', 'No client access — enforced by database functions'],
+  ['traffic_signals', 'Traffic-light locations for voice alerts (OpenStreetMap, monitored junctions, manual)', 'Read: active users · Add: operators+ · Delete: admins/supervisors'],
   ['branding / branding_versions', 'Published identity and version history', 'Public read (login page) · Write: super admin only'],
 ];
 const RPC: [string, string][] = [
@@ -44,7 +48,7 @@ export default function Schema() {
         <div className="card"><h3>Realtime events (live)</h3><ul className="check">
           {['detection_events', 'alerts', 'cameras', 'notifications', 'chat_messages', 'comm_messages / comm_receipts', 'tickets / ticket_events', 'branding', 'presence:atlip (online / idle users)'].map((e) => <li key={e}><span className="mono">{e}</span><span className="chip g">live</span></li>)}
         </ul>
-          <h3>Technology stack</h3><p className="small">Frontend React 18 / Vite / TypeScript PWA · Backend Supabase (Postgres 17, Auth with TOTP MFA, Realtime, Storage, Edge Functions) · Hosting Hostinger (Apache, HTTPS, CSP) · Source GitHub. Planned: AI inference service (PyTorch / Ultralytics YOLO / ONNX Runtime), video gateway (RTSP → WebRTC/HLS), Capacitor mobile and Tauri desktop packaging.</p>
+          <h3>Technology stack</h3><p className="small">Frontend React 18 / Vite / TypeScript PWA · Native apps Capacitor 8 (iOS, Android) and Electron 45 (Windows, macOS, Linux) · Backend Supabase (Postgres 17, Auth with passkeys (WebAuthn) and TOTP MFA, Realtime, Storage, Edge Functions) · Hosting Hostinger (Apache, HTTPS, CSP) · Source GitHub with Actions CI · AI YOLO11 + ATLIP state CNN on ONNX Runtime (browser and gateway) · CCTV gateway Node + FFmpeg (RTSP → ticketed HLS).</p>
         </div>
       </div>
     </>

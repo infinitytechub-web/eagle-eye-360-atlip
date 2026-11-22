@@ -8,9 +8,11 @@ const PLATFORMS: [string, string, string, string][] = [
   ['Web PWA', 'React/Vite build on Hostinger (HTTPS, CSP, service worker)', 'g', 'Live'],
   ['Backend', 'Supabase — Postgres 17, Auth + MFA, Realtime, Storage, Edge Functions', 'g', 'Live'],
   ['Source control', 'GitHub repository with build workflow', 'g', 'Live'],
-  ['iOS', 'Capacitor + Core ML', 'grey', 'Not built'],
-  ['Android', 'Capacitor + LiteRT / ONNX Runtime Mobile', 'grey', 'Not built'],
-  ['Desktop', 'Tauri / Electron packaging', 'grey', 'Not built'],
+  ['iOS app', 'Capacitor 8 — bundled app, native location & speech, passkeys via system browser (PKCE)', 'a', 'Built & launched in iOS Simulator (CI) — App Store signing pending'],
+  ['Android app', 'Capacitor 8 — APK + Play bundle, targetSdk 36, native location & speech, passkeys via Custom Tabs', 'a', 'Built & launched on Android 15 emulator (CI) — Play signing pending'],
+  ['Desktop apps', 'Electron 45 — hardened, origin-locked shell; Windows (NSIS), macOS (DMG), Linux (AppImage/deb)', 'a', 'Built in CI — code-signing certificates pending'],
+  ['Passkeys (FIDO2/WebAuthn)', 'Biometric & device passkeys, discoverable credentials, user verification required', 'g', 'Live'],
+  ['Voice traffic-light alerts', '677 mapped signals (OSM + monitored junctions), on-device proximity engine, spoken alerts', 'g', 'Live'],
   ['AI detection model', 'YOLO11 + ATLIP state classifier, on-device (ONNX Runtime Web)', 'g', 'Live'],
   ['CCTV video gateway', 'Node + FFmpeg: RTSP → ticketed HLS, encrypted vault, server-side AI (Docker)', 'a', 'Built & tested — awaiting install on camera network'],
 ];
@@ -22,9 +24,9 @@ const ACCEPT: [string, string, 'ok' | 'part' | 'no'][] = [
   ['5. Real-time AI inference (trained model)', 'MET — YOLO11n + state CNN on-device, ~3 fps in browser; Ghana fine-tuning pending', 'part'],
   ['6. GPS & intersection mapping', 'MET — map, manual assignment, device GPS comparison', 'ok'],
   ['7. Analytics dashboard', 'MET — database aggregates with realtime updates', 'ok'],
-  ['8. Secure auth & RBAC', 'MET — Supabase Auth, TOTP MFA, approval flow, RLS on every table', 'ok'],
+  ['8. Secure auth & RBAC', 'MET — Supabase Auth, passkeys, TOTP MFA (forced re-enrolment after admin reset), RLS on every table', 'ok'],
   ['9. Audit trails', 'MET — append-only server-side audit log', 'ok'],
-  ['10. Web/iOS/Android/Desktop builds', 'PARTIAL — installable web PWA only', 'part'],
+  ['10. Web/iOS/Android/Desktop builds', 'MET in CI — all five platforms build; store/code signing needs your Apple, Google & certificate accounts', 'part'],
   ['11. Offline & network recovery', 'PARTIAL — app shell cached, on-device detection offline; data sync needs connection', 'part'],
   ['12. Documented APIs & database', 'MET — live schema, migrations in repository', 'ok'],
   ['13. Verified backup & restoration', 'PARTIAL — JSON export live; Supabase backups per plan; restore drill NOT run', 'part'],
@@ -72,6 +74,20 @@ export default function Deploy() {
     await t('Exactly two themes (Day / Night)', () => ['light', 'dark'].includes(document.documentElement.dataset.theme || ''));
     await t('In-page confirm modal present (no native dialogs)', () => !!document.querySelector('.modal'));
     await t('Responsive viewport configured', () => !!document.querySelector('meta[name=viewport]'));
+    await t('Passkey service issues WebAuthn options for this site', async () => {
+      const { data, error } = await supabase.functions.invoke('passkey', { body: { action: 'login-options' } });
+      return [!error && !!data?.options?.challenge, error ? error.message : 'RP ID ' + (data?.options?.rpId || '?')];
+    });
+    await t('Passkeys supported by this browser/device', () => [typeof window.PublicKeyCredential === 'function', typeof window.PublicKeyCredential === 'function' ? 'WebAuthn available' : 'not supported here (password + MFA still work)']);
+    await t('Password strength meter rejects weak passwords', async () => {
+      const { passwordStrength } = await import('../lib/password');
+      return !passwordStrength('Password123!', []).acceptable && passwordStrength('Tr0pic-Harmattan-Lagoon-91', []).acceptable;
+    });
+    await t('Traffic-signal map loaded for voice alerts', async () => {
+      const { count, error } = await supabase.from('traffic_signals').select('id', { count: 'exact', head: true });
+      return [!error && (count || 0) > 0, `${count ?? 0} signals`];
+    });
+    await t('Speech synthesis available for voice alerts', () => [('speechSynthesis' in window) || !!(window as unknown as { Capacitor?: unknown }).Capacitor, 'speechSynthesis' in window ? 'yes' : 'no']);
     setOut(res); setBusy(false);
     await audit(`Test centre executed: ${res.filter((r) => r[1]).length}/${res.length} passed`, null, 'system');
   }

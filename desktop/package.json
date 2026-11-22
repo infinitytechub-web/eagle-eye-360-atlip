@@ -1,0 +1,107 @@
+{
+  "name": "atlip-desktop",
+  "productName": "Eagle Eye 360 ATLIP",
+  "version": "2.0.0",
+  "description": "Eagle Eye 360 \u2014 ATLIP desktop app (Windows, macOS, Linux)",
+  "author": {
+    "name": "Infinity Techub Intelligence",
+    "email": "support@infinitytechub.com"
+  },
+  "homepage": "https://atlip.infinitytechub.com",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/security.test.js",
+    "dist": "electron-builder --publish never",
+    "dist:linux": "electron-builder --linux --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "gh.infinitytechub.atlip.desktop",
+    "productName": "Eagle Eye 360 ATLIP",
+    "artifactName": "ATLIP-${version}-${os}-${arch}.${ext}",
+    "copyright": "\u00a9 Infinity Techub Intelligence",
+    "files": [
+      "main.js",
+      "preload.js",
+      "security.js",
+      "offline.html",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "protocols": [
+      {
+        "name": "ATLIP sign-in",
+        "schemes": [
+          "gh.infinitytechub.atlip"
+        ]
+      }
+    ],
+    "asar": true,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true,
+      "grantFileProtocolExtraPrivileges": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Eagle Eye 360 ATLIP"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "icon": "build/icon.png",
+      "extendInfo": {
+        "NSCameraUsageDescription": "ATLIP uses the camera only when you start the on-device AI traffic-light detector.",
+        "NSLocationUsageDescription": "ATLIP uses your location only while voice traffic-light alerts are on. It never leaves this computer."
+      }
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "maintainer": "Infinity Techub Intelligence <support@infinitytechub.com>",
+      "icon": "build/icon.png"
+    },
+    "publish": null
+  }
+}

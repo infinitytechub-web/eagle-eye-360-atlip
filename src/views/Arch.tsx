@@ -13,7 +13,7 @@ const PRI: [string, string, string, string][] = [
   ['3', 'CCTV integration and monitoring', 'a', 'Gateway built and tested end-to-end (live video, tickets, AI, health, oversight); install on the camera network and connect real cameras.'],
   ['4', 'Intelligence dashboard and GPS', 'g', 'Live — dashboard, analytics, reports and map run on database data with realtime updates.'],
   ['5', 'Cybersecurity and administration', 'g', 'Live — Supabase Auth, MFA, RLS, approvals, audit, admin edge function.'],
-  ['6', 'iOS, Android and desktop packaging', 'grey', 'Not built — installable PWA today; Capacitor and Tauri are the planned paths.'],
+  ['6', 'iOS, Android and desktop apps', 'g', 'Capacitor 8 (iOS/Android) and Electron 45 (Windows/macOS/Linux), built and launch-tested in GitHub Actions; store and code signing pending.'],
   ['7', 'Performance, security and field testing', 'a', 'Partial — model benchmarks and RLS tests done; Ghana field trials and load tests not yet run.'],
 ];
 

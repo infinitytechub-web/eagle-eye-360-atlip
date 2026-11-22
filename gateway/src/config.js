@@ -21,7 +21,7 @@ export const config = {
   host: env('HOST', '127.0.0.1'), // bind locally; expose through the TLS reverse proxy (deploy/Caddyfile)
   dataDir: path.resolve(env('DATA_DIR', './data')),
   streamDir: path.resolve(env('STREAM_DIR', './data/streams')),
-  allowedOrigins: env('ALLOWED_ORIGINS', 'https://atlip.infinitytechub.com').split(',').map((s) => s.trim()).filter(Boolean),
+  allowedOrigins: env('ALLOWED_ORIGINS', 'https://atlip.infinitytechub.com,capacitor://localhost,https://localhost').split(',').map((s) => s.trim()).filter(Boolean),
   supabaseUrl: env('SUPABASE_URL', 'https://qhyiicwfwbmbkdkpyrnh.supabase.co'),
   supabaseKey: env('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_4Kqw1-U1pJJDGRJXesl3xA_fdAvpFT-'),
   serviceEmail: () => req('GATEWAY_ACCOUNT_EMAIL'),

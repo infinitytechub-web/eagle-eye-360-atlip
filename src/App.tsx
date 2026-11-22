@@ -3,8 +3,11 @@ import { BrandingProvider } from './lib/branding';
 import { DataProvider } from './lib/data';
 import { configError } from './lib/supabase';
 import { ModalProvider } from './components/ui';
-import { LoginScreen, MfaEnrollScreen, MfaVerifyScreen, PendingScreen, RecoveryScreen } from './components/AuthScreens';
+import { ForcedPasswordChangeScreen, LoginScreen, MfaEnrollScreen, MfaVerifyScreen, PendingScreen, RecoveryScreen } from './components/AuthScreens';
 import { Shell } from './components/Shell';
+import { NativeHandoffScreen, captureHandoffRequest, pendingHandoff } from './native/NativeHandoffScreen';
+
+captureHandoffRequest();
 
 function ReadyGate() {
   const { profile, signOut } = useAuth();
@@ -12,6 +15,8 @@ function ReadyGate() {
     <section id="login"><div className="card" style={{ maxWidth: 460 }}><h3>Service account</h3>
       <p className="muted">This is a CCTV gateway machine account. It is used by the gateway service only and cannot use the web application.</p>
       <button className="btn" onClick={() => signOut()}>Sign out</button></div></section>);
+  const handoff = pendingHandoff();
+  if (handoff) return <NativeHandoffScreen cc={handoff} />;
   return <DataProvider><Shell /></DataProvider>;
 }
 
@@ -23,6 +28,8 @@ function Gate() {
     case 'signed-out': return <LoginScreen />;
     case 'recovery': return <RecoveryScreen />;
     case 'pending': return <PendingScreen />;
+    case 'password-change': return <ForcedPasswordChangeScreen />;
+    case 'mfa-reenroll': return <MfaEnrollScreen reenroll />;
     case 'mfa-enroll': return <MfaEnrollScreen />;
     case 'mfa-verify': return <MfaVerifyScreen />;
     case 'ready': return <ReadyGate />;

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<title>Eagle Eye 360 ATLIP — offline</title>
+<style>
+  html,body{height:100%;margin:0;background:#07182E;color:#E8EEF7;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{height:100%;display:grid;place-items:center;text-align:center;padding:2rem}
+  h1{font-size:1.4rem;margin:.2rem 0 .6rem} p{color:#9FB3CC;max-width:34rem}
+  button{margin-top:1rem;background:#2ECC71;color:#04210F;border:0;border-radius:8px;padding:.7rem 1.4rem;font-weight:700;cursor:pointer}
+  button:focus-visible{outline:3px solid #fff;outline-offset:2px}
+</style></head>
+<body><main><div>
+  <div aria-hidden="true" style="font-size:2.4rem">📡</div>
+  <h1>Cannot reach ATLIP</h1>
+  <p>The app could not connect to <strong>atlip.infinitytechub.com</strong>. Check your internet connection, VPN or firewall, then try again.</p>
+  <button id="retry" autofocus>Try again</button>
+  <p id="auto" style="font-size:.85rem"></p>
+</div></main>
+<script>
+  const retry = () => (window.atlipDesktop && window.atlipDesktop.retry ? window.atlipDesktop.retry() : location.reload());
+  document.getElementById('retry').addEventListener('click', retry);
+  window.addEventListener('online', retry);
+  let n = 30; const el = document.getElementById('auto');
+  setInterval(() => { n -= 1; el.textContent = 'Retrying automatically in ' + n + ' s'; if (n <= 0) { n = 30; retry(); } }, 1000);
+</script></body></html>

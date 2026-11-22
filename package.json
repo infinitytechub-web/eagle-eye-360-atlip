@@ -2,15 +2,29 @@
   "name": "eagle-eye-360-atlip",
   "private": true,
   "version": "2.0.0",
-  "description": "Eagle Eye 360 — ATLIP: AI Traffic Light Detector & Intelligence Platform",
+  "description": "Eagle Eye 360 \u2014 ATLIP: AI Traffic Light Detector & Intelligence Platform",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cap:sync": "npm run build && cap sync",
+    "android": "cap open android",
+    "ios": "cap open ios"
   },
   "dependencies": {
+    "@capacitor-community/keep-awake": "^8.0.1",
+    "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/geolocation": "^8.2.5",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
+    "@simplewebauthn/browser": "^13.3.0",
     "@supabase/supabase-js": "^2.45.0",
     "hls.js": "^1.7.4",
     "onnxruntime-web": "^1.31.1",
@@ -18,6 +32,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.6.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
