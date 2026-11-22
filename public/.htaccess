@@ -6,6 +6,9 @@ AddType application/wasm .wasm
 AddType application/octet-stream .onnx
 RewriteEngine On
 
+# Never serve hidden files or folders (.git from Hostinger Git deploys, .env, .htaccess) — except ACME .well-known
+RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
 # Force HTTPS
 RewriteCond %{HTTPS} !=on
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
