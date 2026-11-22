@@ -1,0 +1,43 @@
+{
+  "pipeline": "atlip-pipeline 1.0",
+  "evaluated": "2026-11-22",
+  "operating_point": { "detector_conf": 0.3, "nms_iou": 0.45, "state_conf": 0.7, "temporal_frames": 3 },
+  "detectors": [
+    {
+      "id": "yolo11n", "file": "/models/atlip-detector-yolo11n.onnx", "label": "Standard — YOLO11n (10 MB)", "default": true,
+      "source": "Ultralytics YOLO11n pretrained on COCO 2017 (class 9 'traffic light'); not fine-tuned", "licence": "AGPL-3.0 (Ultralytics)",
+      "input": 640,
+      "eval": {
+        "dataset": "DriveU traffic-light test split (129 real driving frames, Germany) — evaluation only, never trained on",
+        "recall_lights_ge_25px": 0.508, "precision_ge_25px_conf_0_25": 0.594, "recall_lights_ge_25px_conf_0_35": 0.435, "precision_conf_0_35": 0.75,
+        "note": "Precision is a lower bound: the dataset labels only ego-relevant lights, so many detections counted as false positives are real, unlabelled traffic lights.",
+        "cpu_ms_single_thread": 84
+      }
+    },
+    {
+      "id": "yolo11s", "file": "/models/atlip-detector-yolo11s.onnx", "label": "High accuracy — YOLO11s (36 MB, desktop)", "default": false,
+      "source": "Ultralytics YOLO11s pretrained on COCO 2017 (class 9 'traffic light'); not fine-tuned", "licence": "AGPL-3.0 (Ultralytics)",
+      "input": 640,
+      "eval": {
+        "dataset": "DriveU traffic-light test split (129 real driving frames) — evaluation only",
+        "recall_lights_ge_25px": 0.629, "precision_ge_25px_conf_0_25": 0.542,
+        "note": "Same labelling caveat as above.",
+        "cpu_ms_single_thread": 250
+      }
+    }
+  ],
+  "state_classifier": {
+    "id": "atlip-state-v2", "file": "/models/atlip-state-v2.onnx", "classes": ["RED", "CAUTION", "GREEN", "UNKNOWN"],
+    "input": { "width": 32, "height": 64 }, "params": 77000,
+    "trained_on": "Udacity/MIT traffic-light crops (MIT licence, 1,187 train) + synthetic UNKNOWN (unlit, glare, blur, background); trained 2026-11-22",
+    "eval_in_domain": { "dataset": "held-out test split, 447 crops (297 real + 150 synthetic unknown)", "accuracy": 0.971, "at_conf_0_7": { "lights_classified": 0.956, "wrong_colour_claims": 4 } },
+    "eval_cross_dataset": { "dataset": "DriveU state crops, 2,494 real crops from German cities — never trained on", "at_conf_0_7": { "precision_of_colour_claims": 0.987, "coverage": 0.563, "red_green_swaps": 2 } },
+    "licence": "Model weights: © Infinity Techub Intelligence; training code MIT-compatible"
+  },
+  "limitations": [
+    "Not yet trained or validated on Ghanaian signals; fine-tune with locally labelled data before operational reliance (see ml/README.md).",
+    "Distant signals (< 25 px tall) are often missed; the result is then 'no signal / UNKNOWN', never a guess.",
+    "Directional arrows and pedestrian aspects are classified by colour only; arrow direction is not yet recognised.",
+    "Advisory only — never a substitute for the physical signal, road rules or the driver's own observation."
+  ]
+}
