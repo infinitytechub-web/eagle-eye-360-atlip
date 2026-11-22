@@ -1,5 +1,5 @@
 /* Eagle Eye 360 — service worker: app-shell caching only. API/auth traffic to Supabase is never cached. */
-const CACHE = 'ee360-shell-v3';
+const CACHE = 'ee360-shell-v4';
 const MODELS = 'ee360-models-v1'; // AI model + runtime: cached on first use for offline detection
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.png', '/icon-192.png', '/logo-256.jpg'];
 self.addEventListener('install', (e) => {
