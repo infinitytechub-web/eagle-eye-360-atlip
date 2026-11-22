@@ -1,5 +1,5 @@
 # Builds the app on every push to main and publishes the static bundle to the `deploy` branch.
-# Hostinger is connected to the `deploy` branch (static site, auto-deploy), so every push goes live.
+# Hostinger auto-deploys the `deploy` branch (static site, connected 22 Nov 2026), so every push to main goes live.
 name: Build & publish
 
 on:
@@ -25,6 +25,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: Build stamp (shows which commit is live at /version.json)
+        run: |
+          node -e "require('fs').writeFileSync('dist/version.json', JSON.stringify({version: require('./package.json').version, commit: process.env.GITHUB_SHA.slice(0,7), built_at: new Date().toISOString()}, null, 2) + '\n')"
+          cat dist/version.json
       - name: Publish dist/ to the deploy branch
         run: |
           cd dist
