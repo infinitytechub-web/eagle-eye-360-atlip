@@ -66,3 +66,15 @@ VS Code  ──commit & Sync──▶  GitHub (main)  ──Actions: build──
 - **Live build:** https://atlip.infinitytechub.com/version.json shows the build being served.
 - **Inside the app:** the version appears on the sign-in screen, in the footer, and in Deploy → *Production releases*.
 - **Rolling back:** revert the change on `main` and push. That creates a new verified release. The `deploy` branch keeps a commit for every release, for reference.
+
+## Verification record — pipeline restored 22 Nov 2026
+
+| Check | Result |
+|---|---|
+| Hostinger GitHub installation and auto-deploy settings | Active; follows `infinitytechub-web/eagle-eye-360-atlip`, branch `deploy`, into the site root |
+| `deploy` branch | Fast-forward history (force-push and rebuilt history removed) |
+| GitHub push to live (Hostinger clone of the new commit) | About 12–20 s after publish |
+| First verified release | `V221120260001`: record, live `/version.json` build and the sign-in screen all match |
+| Counter tests (20 parallel, 10 duplicate, retry, 23:59:59 / 00:00:00, isolation, cleanup) | 10/10 |
+| Database-level counter tests (sequence, retry, reset, append-only, constraints, permissions, RLS) | 13/13 |
+| Unauthenticated or forged calls to the deployments service | All rejected (401) |
