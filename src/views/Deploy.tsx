@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLiveVersion, recentDeployments, fmtAccra, type DeploymentRow } from '../lib/version';
 import { supabase, audit } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useData } from '../lib/data';
@@ -39,6 +40,9 @@ export default function Deploy() {
   const { intersections, cameras, stats } = useData();
   const [out, setOut] = useState<[string, boolean, string?][] | null>(null);
   const [busy, setBusy] = useState(false);
+  const live = useLiveVersion();
+  const [releases, setReleases] = useState<DeploymentRow[] | null>(null);
+  useEffect(() => { void recentDeployments(10).then(setReleases); }, []);
 
   async function run() {
     setBusy(true);
@@ -74,6 +78,13 @@ export default function Deploy() {
     await t('Exactly two themes (Day / Night)', () => ['light', 'dark'].includes(document.documentElement.dataset.theme || ''));
     await t('In-page confirm modal present (no native dialogs)', () => !!document.querySelector('.modal'));
     await t('Responsive viewport configured', () => !!document.querySelector('meta[name=viewport]'));
+    await t('Live build has a verified deployment record', async () => {
+      const r = await fetch(`/version.json?ts=${Date.now()}`, { cache: 'no-store' });
+      const b = r.ok ? await r.json() : null;
+      if (!b?.build_id) return [false, 'no build stamp (development build)'];
+      const { data } = await supabase.from('deployments').select('version_id').eq('environment', 'production').eq('build_id', b.build_id).maybeSingle();
+      return [!!data, data ? `${data.version_id} · build ${b.build_id}` : `build ${b.build_id} not yet recorded`];
+    });
     await t('Passkey service issues WebAuthn options for this site', async () => {
       const { data, error } = await supabase.functions.invoke('passkey', { body: { action: 'login-options' } });
       return [!error && !!data?.options?.challenge, error ? error.message : 'RP ID ' + (data?.options?.rpId || '?')];
@@ -113,6 +124,23 @@ export default function Deploy() {
               <tr key={r[0]}><td>{r[0]}</td><td><span className={'chip ' + (r[1].startsWith('RUN') ? 'g' : 'grey')}>{r[1]}</span></td></tr>)}
           </tbody></table></div>
           <p className="small muted">Full figures and methodology are on the AI Engine page and in ml/README.md. Field validation on Ghanaian signals is the next gating step.</p></div>
+      </div>
+      <div className="card" style={{ marginTop: '1rem' }}>
+        <h3>Production releases — verified deployment record</h3>
+        <p className="small">
+          Live now: <strong className="mono">{live.status === 'verified' ? live.versionId : live.status === 'pending' ? 'pending verification' : live.status === 'dev' ? 'development build' : '—'}</strong>
+          {' '}· Pipeline: VS Code → GitHub (<span className="mono">main</span>) → Hostinger Auto-Deployment (<span className="mono">deploy</span> branch) → live.
+          Identifiers are VDDMMYYYYNNNN, assigned only after the new build is verified live; failed or cancelled deployments are never recorded.
+        </p>
+        <div className="tablewrap"><table><thead><tr><th>Version</th><th>Deployed (GMT)</th><th>Commit</th><th>Pipeline run</th></tr></thead><tbody>
+          {(releases || []).map((d) => <tr key={d.version_id}>
+            <td className="mono">{d.version_id}{live.versionId === d.version_id && <> <span className="chip g">LIVE</span></>}</td>
+            <td className="small">{fmtAccra(d.verified_at)}</td>
+            <td><a className="mono" href={`https://github.com/infinitytechub-web/eagle-eye-360-atlip/commit/${d.commit_sha}`} target="_blank" rel="noopener noreferrer">{d.commit_sha.slice(0, 7)}</a></td>
+            <td>{d.run_url ? <a className="small" href={d.run_url} target="_blank" rel="noopener noreferrer">build {d.build_id}</a> : d.build_id}</td>
+          </tr>)}
+          {releases && releases.length === 0 && <tr><td colSpan={4} className="small muted">No verified releases recorded yet.</td></tr>}
+        </tbody></table></div>
       </div>
       <div className="card" style={{ marginTop: '1rem' }}><h3>Final acceptance checklist — 15 criteria, honest status</h3>
         <ul className="check">{ACCEPT.map((a) => <li key={a[0]}><span>{a[0]}</span><span className={'chip ' + (a[2] === 'ok' ? 'g' : a[2] === 'part' ? 'a' : 'r')}>{a[1]}</span></li>)}</ul></div>

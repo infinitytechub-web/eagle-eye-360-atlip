@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "editorconfig.editorconfig",
+    "github.vscode-pull-request-github",
+    "github.vscode-github-actions",
+    "denoland.vscode-deno"
+  ]
+}

@@ -18,6 +18,7 @@ const TABLES: [string, string, string][] = [
   ['user_passkeys', 'Registered passkeys (credential ID, public key, counter, device type) — never private keys', 'Read: own + admins · Rename: own · Delete: own or super admin · Insert: passkey service only'],
   ['webauthn_challenges', 'Single-use 5-minute WebAuthn challenges and app sign-in hand-off codes (hashed)', 'No client access — passkey service only'],
   ['credential_resets', 'Super-admin password resets awaiting completion (password-hash snapshot to block reuse)', 'No client access — enforced by database functions'],
+  ['deployments', 'Verified production releases: version VDDMMYYYYNNNN, build, commit, pipeline run (append-only)', 'Read: everyone (production rows) · Write: deployment service only, after live verification'],
   ['traffic_signals', 'Traffic-light locations for voice alerts (OpenStreetMap, monitored junctions, manual)', 'Read: active users · Add: operators+ · Delete: admins/supervisors'],
   ['branding / branding_versions', 'Published identity and version history', 'Public read (login page) · Write: super admin only'],
 ];

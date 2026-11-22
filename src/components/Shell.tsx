@@ -6,6 +6,7 @@ import { perms, ROLE_LABEL } from '../lib/roles';
 import { useNow } from '../lib/hooks';
 import { Logo, Loading } from './ui';
 import { NotificationBell } from './Notifications';
+import { VersionBadge } from './VersionBadge';
 import { ChatWidget } from './ChatWidget';
 import type { Role } from '../lib/types';
 
@@ -116,7 +117,7 @@ export function Shell() {
             </div>
           </div>
           <Suspense fallback={<Loading what="module" />}><section className="view active"><View /></section></Suspense>
-          <footer>{branding.footer}</footer>
+          <footer>{branding.footer} · <VersionBadge /></footer>
         </main>
       </div>
       <ChatWidget />

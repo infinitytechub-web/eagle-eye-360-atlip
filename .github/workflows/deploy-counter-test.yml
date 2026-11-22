@@ -1,0 +1,84 @@
+# Tests the deployment version counter end to end against the real Supabase service, with real parallel requests:
+# daily sequencing, duplicate prevention under concurrency, idempotent retries, daily reset and the date boundary.
+# Uses environment 'test' only (never shown in the app, never affects production numbering) and cleans up after itself.
+name: Deployment counter test
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/deploy-counter-test.yml', 'supabase/functions/deployments/**', 'supabase/migrations/0009_deployments.sql']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-counter-test
+  cancel-in-progress: false
+
+jobs:
+  counter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FN: https://qhyiicwfwbmbkdkpyrnh.supabase.co/functions/v1/deployments
+      REST: https://qhyiicwfwbmbkdkpyrnh.supabase.co/rest/v1/deployments
+      KEY: sb_publishable_4Kqw1-U1pJJDGRJXesl3xA_fdAvpFT-
+    steps:
+      - name: Run counter tests
+        run: |
+          set -euo pipefail
+          TOKEN=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=atlip-deployments" | jq -r .value)
+          export TOKEN
+          call() { curl -fsS -X POST "$FN" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d "$1"; }
+          export -f call
+          PASS=0; FAIL=0
+          ok()  { echo "PASS  $1"; PASS=$((PASS+1)); echo "| ✅ | $1 |" >> "$GITHUB_STEP_SUMMARY"; }
+          bad() { echo "FAIL  $1"; FAIL=$((FAIL+1)); echo "| ❌ | $1 |" >> "$GITHUB_STEP_SUMMARY"; }
+          echo "| | Deployment counter test |" >> "$GITHUB_STEP_SUMMARY"; echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          PROD_BEFORE=$(curl -fsS "$REST?select=id" -H "apikey: $KEY" | jq length)
+
+          call '{"action":"selftest-cleanup"}' >/dev/null
+
+          # 1. 20 deployments recorded concurrently on the same day
+          seq 1 20 | xargs -P 20 -I{} bash -c 'call "{\"action\":\"selftest-record\",\"build_id\":\"test-c{}\",\"at\":\"2030-03-15T10:00:00Z\"}"' > /tmp/t1.jsonl
+          N=$(jq -s 'length' /tmp/t1.jsonl); U=$(jq -s 'map(.version_id)|unique|length' /tmp/t1.jsonl)
+          SEQS=$(jq -s 'map(.seq)|sort|map(tostring)|join(",")' -r /tmp/t1.jsonl)
+          EXP=$(seq -s, 1 20)
+          [ "$N" = 20 ] && [ "$U" = 20 ] && [ "$SEQS" = "$EXP" ] && ok "20 concurrent deployments → 20 unique identifiers, counter 0001–0020 with no gaps" || bad "concurrent sequencing (got $U unique, seqs $SEQS)"
+          FIRST=$(jq -s -r 'map(.version_id)|sort|first' /tmp/t1.jsonl); LAST=$(jq -s -r 'map(.version_id)|sort|last' /tmp/t1.jsonl)
+          [ "$FIRST" = V150320300001 ] && [ "$LAST" = V150320300020 ] && ok "format VDDMMYYYYNNNN: $FIRST … $LAST" || bad "format ($FIRST … $LAST)"
+
+          # 2. the same deployment reported 10 times concurrently → one identifier, created exactly once
+          seq 1 10 | xargs -P 10 -I{} bash -c 'call "{\"action\":\"selftest-record\",\"build_id\":\"test-same\",\"at\":\"2030-03-15T11:00:00Z\"}"' > /tmp/t2.jsonl
+          U2=$(jq -s 'map(.version_id)|unique|length' /tmp/t2.jsonl); C2=$(jq -s 'map(select(.created))|length' /tmp/t2.jsonl); V2=$(jq -s -r '.[0].version_id' /tmp/t2.jsonl)
+          [ "$U2" = 1 ] && [ "$C2" = 1 ] && [ "$V2" = V150320300021 ] && ok "same deployment reported 10× concurrently → one identifier ($V2), created once" || bad "duplicate prevention (unique=$U2 created=$C2 v=$V2)"
+
+          # 3. retry of an already-recorded deployment returns the original identifier
+          R=$(call '{"action":"selftest-record","build_id":"test-c7","at":"2030-03-15T15:00:00Z"}')
+          RV=$(echo "$R" | jq -r .version_id)
+          [ "$(echo "$R" | jq -r .created)" = false ] && jq -s -e --arg v "$RV" 'map(.version_id)|index($v) != null' /tmp/t1.jsonl >/dev/null && ok "retrying a recorded deployment returns its identifier ($(echo "$R" | jq -r .version_id)), nothing new created" || bad "idempotent retry ($R)"
+
+          # 4. last second of the day continues the sequence; midnight starts a new day at 0001
+          E=$(call '{"action":"selftest-record","build_id":"test-late","at":"2030-03-15T23:59:59Z"}' | jq -r .version_id)
+          M=$(call '{"action":"selftest-record","build_id":"test-midnight","at":"2030-03-16T00:00:00Z"}' | jq -r .version_id)
+          M2=$(call '{"action":"selftest-record","build_id":"test-midnight2","at":"2030-03-16T08:30:00Z"}' | jq -r .version_id)
+          [ "$E" = V150320300022 ] && ok "23:59:59 still the same day → $E" || bad "end-of-day ($E)"
+          [ "$M" = V160320300001 ] && [ "$M2" = V160320300002 ] && ok "counter resets daily: 00:00:00 → $M, next → $M2" || bad "daily reset ($M, $M2)"
+
+          # 5. production numbering untouched and test rows invisible to the public
+          PROD_AFTER=$(curl -fsS "$REST?select=id" -H "apikey: $KEY" | jq length)
+          TEST_VISIBLE=$(curl -fsS "$REST?select=id&environment=eq.test" -H "apikey: $KEY" | jq length)
+          [ "$PROD_BEFORE" = "$PROD_AFTER" ] && [ "$TEST_VISIBLE" = 0 ] && ok "production records untouched ($PROD_AFTER); test rows hidden from the public" || bad "isolation (prod $PROD_BEFORE→$PROD_AFTER, visible test rows $TEST_VISIBLE)"
+
+          # 6. a non-test build id is refused on the test path
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$FN" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"action":"selftest-record","build_id":"123-1"}')
+          [ "$code" = 400 ] && ok "test path cannot write production-style build ids (HTTP $code)" || bad "test path guard (HTTP $code)"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$FN" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"action":"record","build_id":"1-1"}')
+          [ "$code" = 403 ] && ok "this workflow cannot record production releases (HTTP $code)" || bad "production guard (HTTP $code)"
+
+          D=$(call '{"action":"selftest-cleanup"}' | jq -r .deleted)
+          [ "$D" = 24 ] && ok "cleanup removed all $D test records" || bad "cleanup ($D deleted)"
+          echo "$PASS passed, $FAIL failed"; echo "**$PASS passed, $FAIL failed**" >> "$GITHUB_STEP_SUMMARY"
+          test "$FAIL" = 0

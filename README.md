@@ -81,11 +81,14 @@ Migrations are in `supabase/migrations/` (already applied to the live project, i
 
 Edge function source: `supabase/functions/admin-users/index.ts`.
 
-## Deployment (GitHub → Hostinger)
+## Deployment (VS Code → GitHub → Hostinger Auto-Deployment → live)
 
-1. Push to `main`.
-2. GitHub Actions (`.github/workflows/deploy.yml`) runs `pnpm install --frozen-lockfile && pnpm run build` and force-pushes `dist/` (plus `version.json`) to the `deploy` branch.
-3. Hostinger's Git auto-deploy pulls the `deploy` branch into `atlip.infinitytechub.com/public_html`.
+1. Commit and **Sync** from VS Code (push to `main`).
+2. GitHub Actions (`.github/workflows/deploy.yml`) builds with pnpm and adds one fast-forward commit of `dist/` (plus `version.json`) to the `deploy` branch.
+3. **Hostinger's native GitHub Auto-Deployment** publishes the `deploy` branch to `atlip.infinitytechub.com`.
+4. The verify job waits for that build to be live, smoke-tests it and records the release. This assigns the version identifier `VDDMMYYYYNNNN` shown in the app.
+
+Full guide, including VS Code setup and how versioning works: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
 `public/.htaccess` provides HTTPS redirect, SPA fallback, HSTS, CSP and caching headers.
 

@@ -1,5 +1,13 @@
-# Builds the app on every push to main and publishes the static bundle to the `deploy` branch.
-# Hostinger auto-deploys the `deploy` branch (static site, connected 22 Nov 2026), so every push to main goes live.
+# Production pipeline:  VS Code → GitHub (main) → Hostinger Auto-Deployment → Live production
+#
+# Hostinger's native GitHub Auto-Deployment is the ONLY thing that deploys to the server: it follows the `deploy` branch.
+# GitHub Actions is used only for what Hostinger's static hosting cannot do:
+#   1. build — the Vite/TypeScript app must be compiled with pnpm; the static output is committed to `deploy`
+#      as a normal fast-forward commit (history kept, so any earlier release can be restored);
+#   2. verify — wait until Hostinger has put this exact build live, smoke-test the site, and only then record the
+#      release in Supabase, which assigns the version identifier VDDMMYYYYNNNN shown in the app.
+# A failed build never reaches `deploy`; a build Hostinger fails to deploy is never recorded, so the live version
+# identifier only ever changes after a verified successful deployment.
 name: Build & publish
 
 on:
@@ -11,12 +19,14 @@ permissions:
   contents: write
 
 concurrency:
-  group: deploy
-  cancel-in-progress: true
+  group: production-deploy
+  cancel-in-progress: false        # queue, never cut a deployment off half-way
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      build_id: ${{ steps.stamp.outputs.build_id }}
     steps:
       - uses: actions/checkout@v5
       - name: Only pnpm lockfiles allowed (no npm / Yarn / Bun)
@@ -30,16 +40,93 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
-      - name: Build stamp (shows which commit is live at /version.json)
+      - name: Build stamp (/version.json — identifies this exact build on the live site)
+        id: stamp
         run: |
-          node -e "require('fs').writeFileSync('dist/version.json', JSON.stringify({version: require('./package.json').version, commit: process.env.GITHUB_SHA.slice(0,7), built_at: new Date().toISOString()}, null, 2) + '\n')"
+          BUILD_ID="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node -e "require('fs').writeFileSync('dist/version.json', JSON.stringify({version: require('./package.json').version, commit: process.env.GITHUB_SHA.slice(0,7), build_id: process.env.BUILD_ID, built_at: new Date().toISOString()}, null, 2) + '\n')"
           cat dist/version.json
-      - name: Publish dist/ to the deploy branch
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+        env: { BUILD_ID: "${{ github.run_id }}-${{ github.run_attempt }}" }
+      - name: Publish to the deploy branch (fast-forward; Hostinger auto-deploys it)
+        env:
+          REMOTE: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          BUILD_ID: ${{ steps.stamp.outputs.build_id }}
         run: |
-          cd dist
-          git init -q -b deploy
+          set -e
+          if ! git clone -q --depth 1 --branch deploy --single-branch "$REMOTE" "$RUNNER_TEMP/deploy"; then
+            git init -q -b deploy "$RUNNER_TEMP/deploy" && git -C "$RUNNER_TEMP/deploy" remote add origin "$REMOTE"
+          fi
+          rsync -a --delete --exclude '.git' dist/ "$RUNNER_TEMP/deploy/"
+          cd "$RUNNER_TEMP/deploy"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -qm "Deploy ${GITHUB_SHA::7}"
-          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git" deploy
+          git commit -qm "Deploy ${GITHUB_SHA::7} · build ${BUILD_ID}" -m "Source: ${{ github.server_url }}/${{ github.repository }}/commit/${GITHUB_SHA}"
+          git push -q origin HEAD:deploy
+          echo "Published $(git rev-parse --short HEAD) to deploy"
+
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write                  # GitHub OIDC token proves to Supabase which repository/workflow/run is calling
+    env:
+      SITE: https://atlip.infinitytechub.com
+      BUILD_ID: ${{ needs.build.outputs.build_id }}
+      SUPABASE_URL: https://qhyiicwfwbmbkdkpyrnh.supabase.co
+      SUPABASE_KEY: sb_publishable_4Kqw1-U1pJJDGRJXesl3xA_fdAvpFT-
+    steps:
+      - name: Wait for Hostinger Auto-Deployment to put this build live
+        run: |
+          for i in $(seq 1 60); do
+            LIVE=$(curl -fsS --max-time 15 -H 'Cache-Control: no-cache' "$SITE/version.json?wait=$i-$RANDOM" | jq -r '.build_id // empty' || true)
+            if [ "$LIVE" = "$BUILD_ID" ]; then echo "Build $BUILD_ID is live (after ~$((i*10)) s)"; exit 0; fi
+            echo "[$i] live build: ${LIVE:-unknown} — waiting for $BUILD_ID"; sleep 10
+          done
+          echo "::error::Hostinger did not deploy build $BUILD_ID within 10 minutes — release NOT recorded"; exit 1
+      - name: Smoke test the live site
+        run: |
+          set -e
+          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0 Safari/537.36'
+          code=$(curl -s -A "$UA" -D /tmp/h -o /tmp/index.html -w '%{http_code}' "$SITE/?smoke=$RANDOM")
+          if [ "$code" = 200 ]; then
+            grep -q '<div id="root">' /tmp/index.html
+            grep -qi '^content-security-policy:' /tmp/h && grep -qi '^strict-transport-security:' /tmp/h
+            for a in $(grep -oE '/assets/[A-Za-z0-9_.-]+\.(js|css)' /tmp/index.html | sort -u); do
+              test "$(curl -s -o /dev/null -w '%{http_code}' "$SITE$a")" = 200 || { echo "::error::asset $a missing"; exit 1; }
+            done
+            echo "Entry page, assets and security headers OK"
+          elif [ "$code" = 403 ] && grep -qi '^server: *hcdn' /tmp/h; then
+            echo "::warning::Hostinger CDN served its automated-client browser check; build already confirmed via version.json"
+          else
+            echo "::error::Home page returned HTTP $code"; exit 1
+          fi
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$SITE/.git/config")" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$SITE/sw.js")" = 200
+          echo "Hidden files blocked, service worker served"
+      - name: Record the release (assigns the version identifier)
+        id: record
+        run: |
+          set -e
+          for i in $(seq 1 6); do
+            TOKEN=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=atlip-deployments" | jq -r .value)
+            code=$(curl -s -o /tmp/rec.json -w '%{http_code}' -X POST "$SUPABASE_URL/functions/v1/deployments" \
+              -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+              -d "{\"action\":\"record\",\"build_id\":\"$BUILD_ID\"}")
+            cat /tmp/rec.json; echo
+            if [ "$code" = 200 ]; then break; fi
+            if [ "$code" != 409 ] && [ "$code" != 502 ]; then echo "::error::Recording failed (HTTP $code)"; exit 1; fi
+            sleep 15
+          done
+          test "$code" = 200
+          echo "version=$(jq -r .version_id /tmp/rec.json)" >> "$GITHUB_OUTPUT"
+      - name: Confirm the live app can read the same identifier
+        run: |
+          set -e
+          V=$(curl -fsS "$SUPABASE_URL/rest/v1/deployments?select=version_id&environment=eq.production&build_id=eq.$BUILD_ID" -H "apikey: $SUPABASE_KEY" | jq -r '.[0].version_id')
+          test "$V" = "${{ steps.record.outputs.version }}"
+          echo "## Deployed ${V}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Build \`$BUILD_ID\` · commit \`${GITHUB_SHA::7}\` · live at $SITE" >> "$GITHUB_STEP_SUMMARY"
+          echo "Live production version: $V"

@@ -5,6 +5,7 @@ import { useBranding } from '../lib/branding';
 import { Logo } from './ui';
 import { errMsg } from '../lib/util';
 import { audit } from '../lib/supabase';
+import { VersionBadge } from './VersionBadge';
 import { PasswordInput } from './PasswordInput';
 import { passwordStrength } from '../lib/password';
 import { passkeysSupported, signInWithPasskey, friendlyError, isNativeShell } from '../lib/passkey';
@@ -26,6 +27,7 @@ function Frame({ children }: { children: ReactNode }) {
         </div>
         <div className="card">{children}</div>
         <p className="small muted" style={{ textAlign: 'center' }}>{branding.org} · Africa/Accra (GMT) · Authorised personnel only — all access is audit-logged</p>
+        <p className="small muted" style={{ textAlign: 'center', marginTop: '-.4rem' }}><VersionBadge /></p>
       </div>
     </section>
   );

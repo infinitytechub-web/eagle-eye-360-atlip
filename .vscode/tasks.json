@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "pnpm: install (frozen lockfile)", "type": "shell", "command": "pnpm install --frozen-lockfile", "problemMatcher": [] },
+    { "label": "pnpm: dev server", "type": "shell", "command": "pnpm run dev", "isBackground": true, "problemMatcher": [] },
+    { "label": "pnpm: type-check", "type": "shell", "command": "pnpm exec tsc --noEmit -p .", "problemMatcher": ["$tsc"] },
+    { "label": "pnpm: production build", "type": "shell", "command": "pnpm run build", "group": { "kind": "build", "isDefault": true }, "problemMatcher": ["$tsc"] },
+    { "label": "native: sync iOS/Android projects", "type": "shell", "command": "pnpm run cap:sync", "problemMatcher": [] },
+    { "label": "desktop: security tests", "type": "shell", "command": "pnpm test", "options": { "cwd": "${workspaceFolder}/desktop" }, "problemMatcher": [] },
+    { "label": "gateway: syntax check", "type": "shell", "command": "pnpm run check", "options": { "cwd": "${workspaceFolder}/gateway" }, "problemMatcher": [] }
+  ]
+}

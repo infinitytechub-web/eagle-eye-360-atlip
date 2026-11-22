@@ -1,0 +1,32 @@
+{
+  // Eagle Eye 360 · ATLIP — shared VS Code workspace settings (committed so every machine behaves the same).
+  "npm.packageManager": "pnpm",
+  "npm.scriptExplorerAction": "run",
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // Git: fetch regularly, rebase on Sync (keeps history linear), never push the Actions-owned deploy branch by hand.
+  "git.autofetch": true,
+  "git.pruneOnFetch": true,
+  "git.rebaseWhenSync": true,
+  "git.confirmSync": true,
+  "git.enableSmartCommit": false,
+  "git.branchProtection": ["deploy"],
+  "git.branchProtectionPrompt": "alwaysPrompt",
+  "git.openRepositoryInParentFolders": "never",
+
+  // Line endings & whitespace (matches .editorconfig / .gitattributes; prevents Windows CRLF churn)
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  "search.exclude": {
+    "**/node_modules": true, "dist": true, "desktop/release": true,
+    "android/app/build": true, "android/.gradle": true, "ios/App/build": true,
+    "android/app/src/main/assets/public": true, "ios/App/App/public": true
+  },
+
+  // Supabase Edge Functions are Deno; the rest of the repo is Node/Vite.
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.lint": true
+}
